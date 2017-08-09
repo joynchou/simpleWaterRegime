@@ -1,0 +1,1 @@
+"..\SOFTWARE\TASK\COMMON_SOFTWARE\RTOS\Conf_tny.A51" SET (LARGE) DEBUG PRINT(.\Conf_tny.lst) OBJECT(.\Conf_tny.obj) EP

@@ -1,0 +1,24 @@
+C51 COMPILER V8.05a   74LS165                                                              08/09/2017 16:25:15 PAGE 1   
+
+
+C51 COMPILER V8.05a, COMPILATION OF MODULE 74LS165
+OBJECT MODULE PLACED IN .\74LS165.obj
+COMPILER INVOKED BY: C:\Keil_v5\C51\BIN\C51.EXE ..\HARDWARE\COMMON_HARDWARE\74H\74LS165.C LARGE WARNINGLEVEL(0) BROWSE D
+                    -EBUG OBJECTEXTEND PRINT(.\74LS165.lst) TABS(2) OBJECT(.\74LS165.obj)
+
+line level    source
+
+
+
+MODULE INFORMATION:   STATIC OVERLAYABLE
+   CODE SIZE        =   ----    ----
+   CONSTANT SIZE    =   ----    ----
+   XDATA SIZE       =   ----    ----
+   PDATA SIZE       =   ----    ----
+   DATA SIZE        =   ----    ----
+   IDATA SIZE       =   ----    ----
+   BIT SIZE         =   ----    ----
+END OF MODULE INFORMATION.
+
+
+C51 COMPILATION COMPLETE.  0 WARNING(S),  0 ERROR(S)

@@ -1,0 +1,275 @@
+C51 COMPILER V8.05a   FIXEDPULSER                                                          08/09/2017 16:25:14 PAGE 1   
+
+
+C51 COMPILER V8.05a, COMPILATION OF MODULE FIXEDPULSER
+OBJECT MODULE PLACED IN .\fixedPulser.obj
+COMPILER INVOKED BY: C:\Keil_v5\C51\BIN\C51.EXE ..\HARDWARE\COMMON_HARDWARE\fixedPulser\fixedPulser.c LARGE WARNINGLEVEL
+                    -(0) BROWSE DEBUG OBJECTEXTEND PRINT(.\fixedPulser.lst) TABS(2) OBJECT(.\fixedPulser.obj)
+
+line level    source
+
+   1          /************************************************************
+   2          * ×éÖ¯Ãû³Æ£º
+   3          * ÎÄ¼þÃû³Æ: K:\µ¥Æ¬»úÏà¹Ø\µç×Ó´óÈü³ÌÐò¿ò¼Ü\HARDWARE\COMMON_HARDWARE\FIXEDPULSER.C
+   4          * ×÷Õß:   ÖÜ³¿Ñô
+   5          * °æ±¾:  1.0
+   6          * ÈÕÆÚ:     2017/07/18
+   7          * ÃèÊö: ÓÃÀ´²úÉú¹Ì¶¨Âö³åÊýµÄÈí¼þ,×î¶à¶¨ÒåÁ½¸öÂö³å·¢ÉúÆ÷£¬PULSER_1Ê¹ÓÃ¶¨Ê±Æ÷3 p04£¬PULSER_2Ê¹ÓÃ¶¨Ê±Æ÷4  p06
+   8          * ÀúÊ·ÐÞ¸Ä¼ÇÂ¼:
+   9          * <×÷Õß> <Ê±¼ä> <°æ±¾ > <ÃèÊö>
+  10          *  ÖÜ³¿Ñô 7/25  1.1  ¸ü¸ÄÁË¶¨Ê±Æ÷µÄ¶¨Ê±Ê±¼ä£¬ÓÉÔ­À´×î´óÄÜ²úÉú2500hzµÄÂö³å±ä³É¿ÉÒÔ²úÉú5000hzµÄÂö³å
+  11          *  ÖÜ³¿Ñô 7/27  1.2   ÖØÐÂ¶¨ÒåÁËÂö³å·¢ÉúÆ÷µÄ²úÉú·½Ê½£¬Ê¹ÓÃÁ½¸ö¶¨Ê±Æ÷À´²úÉúÁ½Â·Âö³å£¬×îÐ¡¿ÉÒÔ²úÉú16hzµÄÂö³å
+  12          ***********************************************************/
+  13          
+  14          #include "fixedPulser.h"
+  15          #define PULSER_NUM  2 //¶¨ÒåÐèÒªÊ¹ÓÃ¶àÉÙ¸öÂö³å·¢ÉúÆ÷£¬×î¶à¿É²úÉúÁ½Â·²»Í¬ÆµÂÊµÄÂö³å
+  16          #define DEFAULT_PT  LOW //Âö³å·¢ÉúÆ÷µÄÆðÊ¼µçÎ»
+  17          
+  18          #define OPEN_TIMER3_CLKOUT() T4T3M |= 1
+  19          #define OPEN_TIMER4_CLKOUT() T4T3M |= (1 << 4)
+  20          #define CLOSE_TIMER3_CLKOUT() T4T3M &=(~ 1)
+  21          #define CLOSE_TIMER4_CLKOUT() T4T3M &=(~(1 << 4))
+  22          
+  23          
+  24          //#define DEFAULT_PT  LOW //
+  25          struct Pulser //Âö³å·¢ÉúÆ÷ÓÐ¹Ø²ÎÊýÊý¾Ý½á¹¹
+  26          {
+  27            u32 count;  //Âö³å¸öÊý
+  28            u16 Hz;     //Âö³åÆµÂÊ
+  29            u8 state;   //Âö³å·¢ÉúÆ÷µ±Ç°×´Ì¬
+  30          
+  31          };
+  32          
+  33          static struct Pulser g_pulser[PULSER_NUM];  //Âö³å·¢ÉúÆ÷ÐÅÏ¢´æ´¢Êý×é
+  34          static u16 tmp = 0;//Èí¼þ¶¨Ê±Æ÷ÐèÒªÊ¹ÓÃµÄ±äÁ¿£¬Ð´ÔÚÍâÃæÊÇÎªÁË¼õÇáÖÐ¶ÏµÄ¼ÆËãÁ¿£¬Ôö¼Ó¶¨Ê±¾«¶È
+  35          static bit timer2UseBit = 0;//ÊÇ·ñÐèÒªÊ¹ÓÃ¼ÆÊý±äÁ¿À´²úÉúµÍÓÚ¶¨Ê±Æ÷×îµÍ¿É²úÉúµÄÆµÂÊµÄ±êÖ¾Î»
+  36          static bit timer3UseBit = 0;//ÊÇ·ñÐèÒªÊ¹ÓÃ¼ÆÊý±äÁ¿À´²úÉúµÍÓÚ¶¨Ê±Æ÷×îµÍ¿É²úÉúµÄÆµÂÊµÄ±êÖ¾Î»
+  37          bool setPulse(u8 pulser_num, u16 Hz, u32 count)
+  38          {
+  39   1        u16 timerTmp = 0;
+  40   1        u16 TIM_Value;
+  41   1        g_pulser[pulser_num].Hz = Hz;
+  42   1        g_pulser[pulser_num].count = count;
+  43   1        if (pulser_num == PULSER_1)
+  44   1        {
+  45   2          if (Hz > 20)//´óÓÚ20hzÖ±½ÓÊ¹ÓÃ¶¨Ê±Æ÷¸³Öµ
+  46   2          {
+  47   3            //PrintString1("hz >20\r\n");
+  48   3      
+  49   3            TIM_Value = (65536UL - ((MAIN_Fosc / 12) / Hz / 2));
+  50   3            timer2UseBit = 0;
+  51   3            INT_CLKO |= 0x04; //Êä³öÊ±ÖÓ
+  52   3            TH2 = (u8)(TIM_Value >> 8);
+  53   3            TL2 = (u8)TIM_Value;
+  54   3      
+C51 COMPILER V8.05a   FIXEDPULSER                                                          08/09/2017 16:25:14 PAGE 2   
+
+  55   3          }
+  56   2          else//Ð¡ÓÚ20hzÔòÁíÍâ¼ÆËã
+  57   2          {
+  58   3            timer2UseBit = 1;
+  59   3            //  CLOSE_TIMER2_CLKOUT();
+  60   3          }
+  61   2        }
+  62   1        else
+  63   1        {
+  64   2          if (Hz > 20)
+  65   2          {
+  66   3            TIM_Value = (65536UL - ((MAIN_Fosc / 12) / Hz / 2));
+  67   3            timer3UseBit = 0;
+  68   3            T4T3M |= 1; //Êä³öÊ±ÖÓ
+  69   3            TH3 = (u8)(TIM_Value >> 8);
+  70   3            TL3 = (u8)TIM_Value;
+  71   3      
+  72   3          }
+  73   2          else
+  74   2          {
+  75   3            timer3UseBit = 1;
+  76   3          }
+  77   2        }
+  78   1      
+  79   1        return 1;
+  80   1      }
+  81          bool openPulser(u8 pulser_num)
+  82          {
+  83   1      
+  84   1        g_pulser[pulser_num].state = ON;
+  85   1      
+  86   1        if (pulser_num == PULSER_1) //pulser2
+  87   1        {
+  88   2          Timer2_Run();
+  89   2      
+  90   2        }
+  91   1        else   //pulser1
+  92   1        {
+  93   2          Timer3_Run();
+  94   2        }
+  95   1      
+  96   1        return OK;
+  97   1      }
+  98          bool closePulser(u8 pulser_num)
+  99          {
+ 100   1        if (pulser_num == PULSER_1)//pulser2
+ 101   1        {
+ 102   2          Timer2_Stop();
+ 103   2      
+ 104   2      
+ 105   2        }
+ 106   1        else //pulser1
+ 107   1        {
+ 108   2          Timer3_Stop();
+ 109   2      
+ 110   2        }
+ 111   1        g_pulser[pulser_num].state = OFF;
+ 112   1        return OK;
+ 113   1      
+ 114   1      }
+ 115          bool getPulserState(u8 pulser_num)
+ 116          {
+C51 COMPILER V8.05a   FIXEDPULSER                                                          08/09/2017 16:25:14 PAGE 3   
+
+ 117   1      
+ 118   1        return g_pulser[pulser_num].state;
+ 119   1      
+ 120   1      }
+ 121          void PulserInit(void)//³õÊ¼»¯³ÌÐò
+ 122          {
+ 123   1        //PULSER_1 Ê¹ÓÃP30 PULSER_2 Ê¹ÓÃP04
+ 124   1      
+ 125   1        GPIO_InitTypeDef    GPIO_InitStructure;     //½á¹¹¶¨Òå
+ 126   1        GPIO_InitStructure.Mode = GPIO_PullUp;       //Ö¸¶¨IOµÄÊäÈë»òÊä³ö·½Ê½,GPIO_PullUp,GPIO_HighZ,GPIO_OUT_OD,
+             -GPIO_OUT_PP
+ 127   1        GPIO_InitStructure.Pin = GPIO_Pin_0;    //Ö¸¶¨Òª³õÊ¼»¯µÄIO, GPIO_Pin_0 ~ GPIO_Pin_7, »ò²Ù×÷!!!!!!!GPIO³õÊ
+             -¼»¯Ê¹ÓÃ°´Î»»ò²»ÊÇÂß¼­»ò£¬Ö®Ç°ÒòÎªÕâ¸ö±»¿ÓÁË
+ 128   1        GPIO_Inilize(GPIO_P3, &GPIO_InitStructure);  //³õÊ¼»¯
+ 129   1        GPIO_InitStructure.Pin = GPIO_Pin_4;    //Ö¸¶¨Òª³õÊ¼»¯µÄIO, GPIO_Pin_0 ~ GPIO_Pin_7, »ò²Ù×÷!!!!!!!GPIO³õÊ
+             -¼»¯Ê¹ÓÃ°´Î»»ò²»ÊÇÂß¼­»ò£¬Ö®Ç°ÒòÎªÕâ¸ö±»¿ÓÁË
+ 130   1        GPIO_Inilize(GPIO_P0, &GPIO_InitStructure);  //³õÊ¼»¯
+ 131   1        g_pulser[PULSER_1].state = OFF;
+ 132   1        g_pulser[PULSER_2].state = OFF;     
+ 133   1        //  P30=0;
+ 134   1        //P04=0;  
+ 135   1      
+ 136   1      
+ 137   1      
+ 138   1      #ifdef DEBUG
+                //PrintString1("two pulser was initialized\r\n");
+              #endif
+ 141   1      }
+ 142          
+ 143          
+ 144          /***************£¡ÒÔÏÂÎªË½ÓÐº¯Êý£¬²»½¨Òé¸ü¸Ä£¡********************************/
+ 145          
+ 146          /********************* Timer3ÖÐ¶Ïº¯Êý£¬ÓÃÓÚ²úÉúÖ¸¶¨Âö³å************************/
+ 147          //200us²úÉúÒ»´ÎÖÐ¶Ï£¬
+ 148          static u16 pulser1Tmp = 0;
+ 149          static u16 count1Tmp = 0;
+ 150          //static void Pulser_1Int(void) interrupt TIMER2_VECTOR   //2.5ms²úÉúÒ»´ÎÖÐ¶Ï
+ 151          //{
+ 152          //  //PrintString1("into timer inte\n");
+ 153          ////  if (timer2UseBit == 1)//Èç¹ûÉèÖÃµÄÆµÂÊÐ¡ÓÚ20hzÔÙÊ¹ÓÃ¼ÆÊýÆ÷ÀÛ¼ÓµÄ°ì·¨²úÉú
+ 154          ////  {
+ 155          ////    if (++pulser1Tmp >= tmp)
+ 156          
+ 157          ////    {
+ 158          ////      //  PrintString1("p15 state changed\n");
+ 159          
+ 160          ////      pulser1Tmp = 0;
+ 161          ////      if (count1Tmp++ <= g_pulser[PULSER_1].count)
+ 162          ////      {
+ 163          ////        P30 = ~P30;
+ 164          
+ 165          ////        //  PrintString1("p15 state is changed\n");
+ 166          ////      }
+ 167          ////      else
+ 168          ////      {
+ 169          ////        closePulser(PULSER_1);
+ 170          ////        count1Tmp = 0;
+ 171          
+ 172          ////      }
+ 173          ////    }
+ 174          ////  }
+ 175          ////  else//Èç¹ûÆµÂÊ´óÓÚ20ÔòÖ±½ÓÓÃ¸ßËÙÂö³å²úÉú
+C51 COMPILER V8.05a   FIXEDPULSER                                                          08/09/2017 16:25:14 PAGE 4   
+
+ 176          //  {
+ 177          //    if (++count1Tmp >= g_pulser[PULSER_1].count*2)
+ 178          //    {
+ 179          //      count1Tmp = 0;
+ 180          //      closePulser(PULSER_1);
+ 181          //    }
+ 182          //  }
+ 183          static void Pulser_1Int(void) interrupt TIMER2_VECTOR   //2.5ms²úÉúÒ»´ÎÖÐ¶Ï
+ 184          {
+ 185   1        if ((++pulser1Tmp) >= 2 * g_pulser[PULSER_1].count)
+ 186   1        {
+ 187   2          closePulser(PULSER_1);
+ 188   2          pulser1Tmp = 0;
+ 189   2        }
+ 190   1      
+ 191   1      }
+ 192          static u16 pulser2Tmp = 0;
+ 193          static u16 count2Tmp = 0;
+ 194          
+ 195          static void Pulser_2Int(void) interrupt TIMER3_VECTOR   //2.5ms²úÉúÒ»´ÎÖÐ¶Ï
+ 196          {
+ 197   1        if ((++pulser2Tmp) >= 2 * g_pulser[PULSER_2].count)
+ 198   1        {
+ 199   2          closePulser(PULSER_2);
+ 200   2          pulser2Tmp = 0;
+ 201   2        }
+ 202   1      
+ 203   1      }
+ 204          
+ 205          
+ 206          //static u32 g_PWM_7tmp = 0;//¼ÆÊý±äÁ¿
+ 207          ////ÖÐ¶ÏÖ´ÐÐ³ÌÐò£¬ÓÃÀ´¼ÇÂ¼Âö³åµÄ¸öÊý²¢¼°Ê±¹Ø±Õ·¢ÉúÆ÷
+ 208          //static void PWM_Routine(void) interrupt 22   
+ 209          //{
+ 210          
+ 211          //  if (PWMIF ^ 5 == 1)//PWM_7µÚ¶þ·´×ªÖÐ¶Ï
+ 212          //  {
+ 213          
+ 214          //    PWMIF &= (~(1 << 5));  //Èí¼þÇåÁã±êÖ¾Î»
+ 215          //  //  PrintString1(" pwm7 count++\n");
+ 216          
+ 217          //    if (g_PWM_7tmp++ >= g_pulser[PULSER_1].count)
+ 218          //    {
+ 219          //      //      PrintString1("pwm7 temp >= count\n");
+ 220          //      g_PWM_7tmp = 0;
+ 221          //      closePulser(PULSER_1); //µ½ÁËÖ¸¶¨µÄÂö³åÊýºó¾Í¹Ø±ÕÂö³å·¢ÉúÆ÷
+ 222          
+ 223          //    }
+ 224          
+ 225          //  }
+ 226          //  //ÏÖÔÚÑ¡ÔñÊ¹ÓÃ¶¨Ê±Æ÷Ä£ÄâÒ»Â·Âö³å·¢ÉúÆ÷ÁË
+ 227          //  //  if (PWMIF ^ 4 == 1)//PWM_6
+ 228          //  //  {
+ 229          //  //    PWMIF &= (~(1 << 4));  //Èí¼þÇåÁã±êÖ¾Î»
+ 230          //  ////      PrintString1("pwm6 count++\n");
+ 231          //  //    if (g_PWM_6tmp++ >= g_pulser[PULSER_2].count)
+ 232          //  //    {
+ 233          //  //      //          PrintString1(" pwm6 temp >= count\n");
+ 234          //  //      g_PWM_6tmp = 0;
+ 235          //  //      closePulser(PULSER_2);
+ 236          //  //      close_PWM_ALL();
+ 237          //  //    }
+C51 COMPILER V8.05a   FIXEDPULSER                                                          08/09/2017 16:25:14 PAGE 5   
+
+ 238          //  //
+ 239          //  //  }
+ 240          //}
+
+
+MODULE INFORMATION:   STATIC OVERLAYABLE
+   CODE SIZE        =    604    ----
+   CONSTANT SIZE    =   ----    ----
+   XDATA SIZE       =     24      13
+   PDATA SIZE       =   ----    ----
+   DATA SIZE        =   ----    ----
+   IDATA SIZE       =   ----    ----
+   BIT SIZE         =      2    ----
+END OF MODULE INFORMATION.
+
+
+C51 COMPILATION COMPLETE.  0 WARNING(S),  0 ERROR(S)

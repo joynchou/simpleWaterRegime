@@ -1,0 +1,634 @@
+C51 COMPILER V8.05a   PID                                                                  08/09/2017 16:33:13 PAGE 1   
+
+
+C51 COMPILER V8.05a, COMPILATION OF MODULE PID
+OBJECT MODULE PLACED IN .\PID.obj
+COMPILER INVOKED BY: C:\Keil_v5\C51\BIN\C51.EXE ..\SOFTWARE\TASK\COMMON_SOFTWARE\ALGORITHM\PID\PID.c LARGE WARNINGLEVEL(
+                    -0) BROWSE DEBUG OBJECTEXTEND PRINT(.\PID.lst) TABS(2) OBJECT(.\PID.obj)
+
+line level    source
+
+   1          /************************************************************
+   2          * ◊È÷Ø√˚≥∆£∫µÁ◊”¥Û»¸–°◊È
+   3          * Œƒº˛√˚≥∆: PID.c
+   4          * ◊˜’ﬂ:     µÁ◊”¥Û»¸–°◊È
+   5          * ∞Ê±æ :    1.0
+   6          * »’∆⁄:     10/06/17
+   7          * √Ë ˆ:
+   8          * ¿˙ ∑–ﬁ∏ƒº«¬º:
+   9          *  1.–¬‘ˆ¡À‘ˆ¡ø ΩPIDÀ„∑®£¨‘⁄Ω·ππÃÂ÷–º”»Î¡À«∞¡Ω¥ŒµƒŒÛ≤Óº∆À„
+  10          *
+  11          * <◊˜’ﬂ> < ±º‰> <∞Ê±æ > <√Ë ˆ>
+  12          ***********************************************************/
+  13          #include <math.h>
+  14          #include "PID.h"
+  15          #define POSITION           0// Œª÷√ ΩPID
+  16          #define INCREMENTAL        1//‘ˆ¡ø ΩPID
+  17          #define INTEGRAL_SEPARATE  2//ª˝∑÷∑÷¿Î∑®PID
+  18          #define ANTI_WINDUP        3//øπª˝∑÷±•∫ÕPID
+  19          #define TRAPEZOIDAL        4//Ã›–Œª˝∑÷PID
+  20          //pidÀ„∑®µƒæ≤Ã¨Ω·ππÃÂ
+  21          
+  22          typedef  struct
+  23          {
+  24            float setParameter;//…Ë∂®Ω«∂»÷µ
+  25            float actualParameter;// µº Ω«∂»÷µ
+  26            float err;//∆´≤Ó÷µ
+  27            float err_last;//…œ“ª¥Œ∆´≤Ó÷µ
+  28            float err_prev;//err_last…œ“ª¥Œµƒ∆´≤Ó
+  29            float Kp;
+  30            float Ki;
+  31            float Kd;//±»¿˝£¨ª˝∑÷£¨Œ¢∑÷œµ ˝
+  32            float integral;//ª˝∑÷÷µ,Œª÷√ ΩpidÀ„∑®
+  33            float output;  // µº  ‰≥ˆ“Ú◊”
+  34            float Ki_temp;//±£¥Êpid»˝∏ˆ≤Œ ˝µƒæ≤Ã¨±‰¡ø
+  35            float Kp_temp;//±£¥Êpid»˝∏ˆ≤Œ ˝µƒæ≤Ã¨±‰¡ø
+  36            float Kd_temp; //±£¥Êpid»˝∏ˆ≤Œ ˝µƒæ≤Ã¨±‰¡ø
+  37            float parameterUpperLimit;//≤Œ ˝…œœﬁ
+  38            float parameterInferiorLimit;//≤Œ ˝œ¬œﬁ
+  39            float err_max;//Be allowed max error
+  40            u8 state;//pidπ§◊˜◊¥Ã¨
+  41          } pid_info;
+  42          
+  43          static pid_info g_pid_n_info[PID_NUM];
+  44          
+  45          /*************************************************
+  46          * ∫Ø ˝√˚≥∆:PID_config
+  47          * √Ë ˆ: pid≥ı ºªØ∫Ø ˝
+  48          *  ‰»Î:u8 PID_N, float kp, float ki, float kd
+  49          *  ‰≥ˆ:
+  50          * ∑µªÿ÷µ:
+  51          * ∆‰À˚Àµ√˜:
+  52          *************************************************/
+  53          void PID_config(u8 PID_N, float kp, float ki, float kd)//pidÀ„∑®≥ı ºªØ∫Ø ˝£¨≤Œ ˝ «»˝∏ˆ£¨PID
+  54          {
+C51 COMPILER V8.05a   PID                                                                  08/09/2017 16:33:13 PAGE 2   
+
+  55   1        g_pid_n_info[PID_N].err = 0;
+  56   1        g_pid_n_info[PID_N].err_last = 0;
+  57   1        g_pid_n_info[PID_N].err_prev = 0;
+  58   1        g_pid_n_info[PID_N].output = 0;
+  59   1        g_pid_n_info[PID_N].integral = 0;
+  60   1        g_pid_n_info[PID_N].Kp = kp;
+  61   1        g_pid_n_info[PID_N].Ki = ki;
+  62   1        g_pid_n_info[PID_N].Kd = kd;
+  63   1        g_pid_n_info[PID_N].Kp_temp = g_pid_n_info[PID_N].Kp;
+  64   1        g_pid_n_info[PID_N].Ki_temp = g_pid_n_info[PID_N].Ki;
+  65   1        g_pid_n_info[PID_N].Kd_temp = g_pid_n_info[PID_N].Kd;
+  66   1      }
+  67          
+  68          //************************************
+  69          // Method:    openPID
+  70          // FullName:  openPID
+  71          // Access:    public 
+  72          // Returns:   void
+  73          // Qualifier: ¥Úø™pid
+  74          // Parameter: u8 PID_N
+  75          //************************************
+  76          void openPID(u8 PID_N)
+  77          {
+  78   1        g_pid_n_info[PID_N].state = ON;
+  79   1        //add the code here
+  80   1      }
+  81          
+  82          //************************************
+  83          // Method:    closePID
+  84          // FullName:  closePID
+  85          // Access:    public 
+  86          // Returns:   void
+  87          // Qualifier:πÿ±’pid
+  88          // Parameter: u8 PID_N
+  89          //************************************
+  90          void closePID(u8 PID_N)
+  91          {
+  92   1        g_pid_n_info[PID_N].state = OFF;
+  93   1        //add the code here
+  94   1      
+  95   1      }
+  96          
+  97          //************************************
+  98          // Method:    Position_PID
+  99          // FullName:  Position_PID
+ 100          // Access:    public 
+ 101          // Returns:   bit
+ 102          // Qualifier: …Ë÷√∫√≤Œ ˝∫Û π”√¥À∫Ø ˝Ω¯––pid‘ÀÀ„£¨÷Æ∫Û π”√get**∫Ø ˝ªÒ»°º∆À„∫Ûµƒ÷µ£¨–Ë“™œ»¥Úø™pid‘Ÿ π”√¥À∫Ø 
+             -˝
+ 103          // Parameter: u8 PID_N
+ 104          //************************************
+ 105          bit Position_PID(u8 PID_N)
+ 106          {
+ 107   1        if (g_pid_n_info[PID_N].state)
+ 108   1        {
+ 109   2          g_pid_n_info[PID_N].err = g_pid_n_info[PID_N].setParameter - g_pid_n_info[PID_N].actualParameter;
+ 110   2          g_pid_n_info[PID_N].integral += g_pid_n_info[PID_N].err;//ŒÛ≤Óª˝¿€
+ 111   2          g_pid_n_info[PID_N].output  = g_pid_n_info[PID_N].Kp * g_pid_n_info[PID_N].err      //kp * error//ŒÛ≤Ó
+ 112   2                                      + g_pid_n_info[PID_N].Ki * g_pid_n_info[PID_N].integral     //ki * error_integral//ŒÛ≤Óª˝∑
+             -÷
+ 113   2                                      + g_pid_n_info[PID_N].Kd * (g_pid_n_info[PID_N].err - g_pid_n_info[PID_N].err_last);//kd *
+             - error_differential//ŒÛ≤ÓŒ¢∑÷
+C51 COMPILER V8.05a   PID                                                                  08/09/2017 16:33:13 PAGE 3   
+
+ 114   2          g_pid_n_info[PID_N].err_last = g_pid_n_info[PID_N].err;
+ 115   2          return 1;
+ 116   2        }
+ 117   1        return 0;
+ 118   1      }
+ 119          
+ 120          //************************************
+ 121          // Method:    Integral_Separa_PID
+ 122          // FullName:  Integral_Separa_PID
+ 123          // Access:    public 
+ 124          // Returns:   bit
+ 125          // Qualifier: ª˝∑÷∑÷¿ÎPID…Ë÷√∫√≤Œ ˝∫Û π”√¥À∫Ø ˝Ω¯––pid‘ÀÀ„£¨÷Æ∫Û π”√get**∫Ø ˝ªÒ»°º∆À„∫Ûµƒ÷µ£¨–Ë“™œ»¥Úø™pid
+             -‘Ÿ π”√¥À∫Ø ˝
+ 126          // Parameter: u8 PID_N
+ 127          //************************************
+ 128          bit Integral_Separa_PID(u8 PID_N)
+ 129          {
+ 130   1        unsigned int multiple;
+ 131   1        g_pid_n_info[PID_N].err = g_pid_n_info[PID_N].setParameter - g_pid_n_info[PID_N].actualParameter;
+ 132   1        if (g_pid_n_info[PID_N].state)
+ 133   1        {
+ 134   2          if(g_pid_n_info[PID_N].err > g_pid_n_info[PID_N].err_max)
+ 135   2          {
+ 136   3            multiple = 0;
+ 137   3          }
+ 138   2          else
+ 139   2          {
+ 140   3            multiple = 1;
+ 141   3            g_pid_n_info[PID_N].integral += g_pid_n_info[PID_N].err;//ŒÛ≤Óª˝¿€
+ 142   3          }
+ 143   2      /*************PIDÀ„∑®≤ø∑÷*****************/
+ 144   2          g_pid_n_info[PID_N].output  = g_pid_n_info[PID_N].Kp * g_pid_n_info[PID_N].err      //kp * error//ŒÛ≤Ó
+ 145   2                                      + g_pid_n_info[PID_N].Ki * g_pid_n_info[PID_N].integral * multiple    //ki * error_integra
+             -l//ŒÛ≤Óª˝∑÷
+ 146   2                                      + g_pid_n_info[PID_N].Kd * (g_pid_n_info[PID_N].err - g_pid_n_info[PID_N].err_last);//kd *
+             - error_differential//ŒÛ≤ÓŒ¢∑÷
+ 147   2          g_pid_n_info[PID_N].err_last = g_pid_n_info[PID_N].err;
+ 148   2          return 1;
+ 149   2        }
+ 150   1        return 0;
+ 151   1      }
+ 152          
+ 153          //************************************
+ 154          // Method:    Anti_Windup_PID
+ 155          // FullName:  Anti_Windup_PID
+ 156          // Access:    public 
+ 157          // Returns:   bit
+ 158          // Qualifier: øπª˝∑÷±•∫ÕPID…Ë÷√∫√≤Œ ˝∫Û π”√¥À∫Ø ˝Ω¯––pid‘ÀÀ„£¨÷Æ∫Û π”√get**∫Ø ˝ªÒ»°º∆À„∫Ûµƒ÷µ£¨–Ë“™œ»¥Úø™p
+             -id‘Ÿ π”√¥À∫Ø ˝
+ 159          // Parameter: u8 PID_N
+ 160          //************************************
+ 161          bit Anti_Windup_PID(u8 PID_N)
+ 162          {
+ 163   1        unsigned int multiple;
+ 164   1        g_pid_n_info[PID_N].err = g_pid_n_info[PID_N].setParameter - g_pid_n_info[PID_N].actualParameter;
+ 165   1        if (g_pid_n_info[PID_N].state)
+ 166   1        {
+ 167   2          if(g_pid_n_info[PID_N].actualParameter > g_pid_n_info[PID_N].parameterUpperLimit)
+ 168   2          {
+ 169   3            if(abs(g_pid_n_info[PID_N].err) > g_pid_n_info[PID_N].err_max)
+ 170   3            {
+ 171   4              multiple = 0;
+C51 COMPILER V8.05a   PID                                                                  08/09/2017 16:33:13 PAGE 4   
+
+ 172   4            }
+ 173   3            else
+ 174   3            {
+ 175   4              multiple = 1;
+ 176   4              if(g_pid_n_info[PID_N].err < 0)
+ 177   4              {
+ 178   5                g_pid_n_info[PID_N].integral += g_pid_n_info[PID_N].err;//ŒÛ≤Óª˝¿€
+ 179   5              }
+ 180   4            }
+ 181   3          }
+ 182   2          else if(g_pid_n_info[PID_N].actualParameter < g_pid_n_info[PID_N].parameterUpperLimit)
+ 183   2          {
+ 184   3            if(abs(g_pid_n_info[PID_N].err) > g_pid_n_info[PID_N].err_max)
+ 185   3            {
+ 186   4              multiple = 0;
+ 187   4            }
+ 188   3            else
+ 189   3            {
+ 190   4              multiple = 1;
+ 191   4              if(g_pid_n_info[PID_N].err > 0)
+ 192   4              {
+ 193   5                g_pid_n_info[PID_N].integral += g_pid_n_info[PID_N].err;//ŒÛ≤Óª˝¿€
+ 194   5              }
+ 195   4            }
+ 196   3          }
+ 197   2          else
+ 198   2          {
+ 199   3            if(abs(g_pid_n_info[PID_N].err) > g_pid_n_info[PID_N].err_max)
+ 200   3            {
+ 201   4              multiple = 0;
+ 202   4            }
+ 203   3            else
+ 204   3            {
+ 205   4              multiple = 1;
+ 206   4              g_pid_n_info[PID_N].integral += g_pid_n_info[PID_N].err;//ŒÛ≤Óª˝¿€
+ 207   4            }
+ 208   3          }
+ 209   2      /*************PIDÀ„∑®≤ø∑÷*****************/
+ 210   2          g_pid_n_info[PID_N].output  = g_pid_n_info[PID_N].Kp * g_pid_n_info[PID_N].err     //kp * error//ŒÛ≤Ó
+ 211   2                                      + g_pid_n_info[PID_N].Ki * g_pid_n_info[PID_N].integral * multiple    //ki * error_integra
+             -l//ŒÛ≤Óª˝∑÷
+ 212   2                                      + g_pid_n_info[PID_N].Kd * (g_pid_n_info[PID_N].err - g_pid_n_info[PID_N].err_last);//kd *
+             - error_differential//ŒÛ≤ÓŒ¢∑÷
+ 213   2          g_pid_n_info[PID_N].err_last = g_pid_n_info[PID_N].err;
+ 214   2          return 1;
+ 215   2        }
+ 216   1        return 0;
+ 217   1      }
+ 218          
+ 219          //************************************
+ 220          // Method:    Trapezoidal_Integral_PID
+ 221          // FullName:  Trapezoidal_Integral_PID
+ 222          // Access:    public 
+ 223          // Returns:   bit
+ 224          // Qualifier: Ã›–Œª˝∑÷PID…Ë÷√∫√≤Œ ˝∫Û π”√¥À∫Ø ˝Ω¯––pid‘ÀÀ„£¨÷Æ∫Û π”√get**∫Ø ˝ªÒ»°º∆À„∫Ûµƒ÷µ£¨–Ë“™œ»¥Úø™pid
+             -‘Ÿ π”√¥À∫Ø ˝
+ 225          // Parameter: u8 PID_N
+ 226          //************************************
+ 227          bit Trapezoidal_Integral_PID(u8 PID_N)
+ 228          {
+ 229   1        unsigned int multiple;
+ 230   1        g_pid_n_info[PID_N].err = g_pid_n_info[PID_N].setParameter - g_pid_n_info[PID_N].actualParameter;
+C51 COMPILER V8.05a   PID                                                                  08/09/2017 16:33:13 PAGE 5   
+
+ 231   1        if (g_pid_n_info[PID_N].state)
+ 232   1        {
+ 233   2          if(g_pid_n_info[PID_N].actualParameter > g_pid_n_info[PID_N].parameterUpperLimit)
+ 234   2          {
+ 235   3            if(abs(g_pid_n_info[PID_N].err) > g_pid_n_info[PID_N].err_max)
+ 236   3            {
+ 237   4              multiple = 0;
+ 238   4            }
+ 239   3            else
+ 240   3            {
+ 241   4              multiple = 1;
+ 242   4              if(g_pid_n_info[PID_N].err < 0)
+ 243   4              {
+ 244   5                g_pid_n_info[PID_N].integral += g_pid_n_info[PID_N].err;//ŒÛ≤Óª˝¿€
+ 245   5              }
+ 246   4            }
+ 247   3          }
+ 248   2          else if(g_pid_n_info[PID_N].actualParameter < g_pid_n_info[PID_N].parameterUpperLimit)
+ 249   2          {
+ 250   3            if(abs(g_pid_n_info[PID_N].err) > g_pid_n_info[PID_N].err_max)
+ 251   3            {
+ 252   4              multiple = 0;
+ 253   4            }
+ 254   3            else
+ 255   3            {
+ 256   4              multiple = 1;
+ 257   4              if(g_pid_n_info[PID_N].err > 0)
+ 258   4              {
+ 259   5                g_pid_n_info[PID_N].integral += g_pid_n_info[PID_N].err;//ŒÛ≤Óª˝¿€
+ 260   5              }
+ 261   4            }
+ 262   3          }
+ 263   2          else
+ 264   2          {
+ 265   3            if(abs(g_pid_n_info[PID_N].err) > g_pid_n_info[PID_N].err_max)
+ 266   3            {
+ 267   4              multiple = 0;
+ 268   4            }
+ 269   3            else
+ 270   3            {
+ 271   4              multiple = 1;
+ 272   4              g_pid_n_info[PID_N].integral += g_pid_n_info[PID_N].err;//ŒÛ≤Óª˝¿€
+ 273   4            }
+ 274   3          }
+ 275   2      /*************PIDÀ„∑®≤ø∑÷*****************/
+ 276   2          g_pid_n_info[PID_N].output  = g_pid_n_info[PID_N].Kp * g_pid_n_info[PID_N].err      //kp * error//ŒÛ≤Ó
+ 277   2                                      + g_pid_n_info[PID_N].Ki * g_pid_n_info[PID_N].integral * multiple / 2    //ki * error_int
+             -egral//ŒÛ≤Óª˝∑÷
+ 278   2                                      + g_pid_n_info[PID_N].Kd * (g_pid_n_info[PID_N].err - g_pid_n_info[PID_N].err_last);//kd *
+             - error_differential//ŒÛ≤ÓŒ¢∑÷
+ 279   2          g_pid_n_info[PID_N].err_last = g_pid_n_info[PID_N].err;
+ 280   2          return 1;
+ 281   2        } 
+ 282   1        return 0;
+ 283   1      }
+ 284          
+ 285          //************************************
+ 286          // Method:    Incremental_PID
+ 287          // FullName:  Incremental_PID
+ 288          // Access:    public 
+ 289          // Returns:   void
+ 290          // Qualifier: ‘ˆ¡ø ΩPIDÀ„∑®£¨…Ë÷√∫√≤Œ ˝∫Û π”√¥À∫Ø ˝Ω¯––pid‘ÀÀ„£¨÷Æ∫Û π”√get**∫Ø ˝ªÒ»°º∆À„∫Ûµƒ÷µ£¨–Ë“™œ»¥Úø
+C51 COMPILER V8.05a   PID                                                                  08/09/2017 16:33:13 PAGE 6   
+
+             -™pid‘Ÿ π”√¥À∫Ø ˝
+ 291          // Parameter: u8 PID_N
+ 292          //************************************
+ 293          bit Incremental_PID(u8 PID_N)
+ 294          {
+ 295   1        if(g_pid_n_info[PID_N].state)
+ 296   1        {
+ 297   2          g_pid_n_info[PID_N].err = g_pid_n_info[PID_N].setParameter - g_pid_n_info[PID_N].actualParameter;
+ 298   2          g_pid_n_info[PID_N].output = g_pid_n_info[PID_N].Kp * g_pid_n_info[PID_N].err// kp * err
+ 299   2                                       - g_pid_n_info[PID_N].Ki * g_pid_n_info[PID_N].err_last// ki * err_last
+ 300   2                                       + g_pid_n_info[PID_N].Kd * g_pid_n_info[PID_N].err_prev;//kd * err_prev
+ 301   2          g_pid_n_info[PID_N].err_prev = g_pid_n_info[PID_N].err_last;
+ 302   2          g_pid_n_info[PID_N].err_last = g_pid_n_info[PID_N].err;
+ 303   2          return 1;
+ 304   2        }
+ 305   1        return 0;
+ 306   1      }
+ 307          
+ 308          //************************************
+ 309          // Method:    setParameterInferiorLimit
+ 310          // FullName:  setParameterInferiorLimit
+ 311          // Access:    public 
+ 312          // Returns:   void
+ 313          // Qualifier: …Ë÷√ ‰»Î ˝÷µœ¬œﬁ
+ 314          // Parameter: u8 PID_N
+ 315          // Parameter: float value
+ 316          //************************************
+ 317          void setParameterInferiorLimit(u8 PID_N, float value)
+ 318          {
+ 319   1        g_pid_n_info[PID_N].parameterInferiorLimit = value;
+ 320   1      }
+ 321          
+ 322          //************************************
+ 323          // Method:    setParameterUpperLimit
+ 324          // FullName:  setParameterUpperLimit
+ 325          // Access:    public 
+ 326          // Returns:   void
+ 327          // Qualifier: …Ë÷√ ‰»Î ˝÷µ…œœﬁ
+ 328          // Parameter: u8 PID_N
+ 329          // Parameter: float value
+ 330          //************************************
+ 331          void setParameterUpperLimit(u8 PID_N, float value)
+ 332          {
+ 333   1        g_pid_n_info[PID_N].parameterUpperLimit = value;
+ 334   1      
+ 335   1      }
+ 336          
+ 337          //************************************
+ 338          // Method:    setActualParameter
+ 339          // FullName:  setActualParameter
+ 340          // Access:    public 
+ 341          // Returns:   void
+ 342          // Qualifier: …Ë÷√ µº  ‰»Î ˝÷µ
+ 343          // Parameter: u8 PID_N
+ 344          // Parameter: float value
+ 345          //************************************
+ 346          void setActualParameter(u8 PID_N, float value)
+ 347          {
+ 348   1        g_pid_n_info[PID_N].actualParameter = value;
+ 349   1      
+ 350   1      }
+ 351          
+C51 COMPILER V8.05a   PID                                                                  08/09/2017 16:33:13 PAGE 7   
+
+ 352          //************************************
+ 353          // Method:    setKi
+ 354          // FullName:  setKi
+ 355          // Access:    public 
+ 356          // Returns:   void
+ 357          // Qualifier: …Ë÷√PIDµƒKi÷µ
+ 358          // Parameter: u8 PID_N
+ 359          // Parameter: float value
+ 360          //************************************
+ 361          void setKi(u8 PID_N, float value)
+ 362          {
+ 363   1        g_pid_n_info[PID_N].Ki = value;
+ 364   1      }
+ 365          
+ 366          //************************************
+ 367          // Method:    setKp
+ 368          // FullName:  setKp
+ 369          // Access:    public 
+ 370          // Returns:   void
+ 371          // Qualifier: …Ë÷√PIDµƒKp÷µ
+ 372          // Parameter: u8 PID_N
+ 373          // Parameter: float value
+ 374          //************************************
+ 375          void setKp(u8 PID_N, float value)
+ 376          {
+ 377   1        g_pid_n_info[PID_N].Kp = value;
+ 378   1      }
+ 379          
+ 380          //************************************
+ 381          // Method:    setKd
+ 382          // FullName:  setKd
+ 383          // Access:    public 
+ 384          // Returns:   void
+ 385          // Qualifier: …Ë÷√PIDµƒKd÷µ
+ 386          // Parameter: u8 PID_N
+ 387          // Parameter: float value
+ 388          //************************************
+ 389          void setKd(u8 PID_N, float value)
+ 390          {
+ 391   1        g_pid_n_info[PID_N].Kd = value;
+ 392   1      }
+ 393          
+ 394          //************************************
+ 395          // Method:    setParameter
+ 396          // FullName:  setParameter
+ 397          // Access:    public 
+ 398          // Returns:   void
+ 399          // Qualifier: …Ë÷√PIDµƒƒø±Í ˝÷µ
+ 400          // Parameter: u8 PID_N
+ 401          // Parameter: float value
+ 402          //************************************
+ 403          void setParameter(u8 PID_N, float value)
+ 404          {
+ 405   1        g_pid_n_info[PID_N].setParameter = value;
+ 406   1      }
+ 407          
+ 408          
+ 409          //************************************
+ 410          // Method:    getParameter
+ 411          // FullName:  getParameter
+ 412          // Access:    public 
+ 413          // Returns:   float
+C51 COMPILER V8.05a   PID                                                                  08/09/2017 16:33:13 PAGE 8   
+
+ 414          // Qualifier: ∂¡»°PIDµƒƒø±Í ˝÷µ
+ 415          // Parameter: u8 PID_N
+ 416          //************************************
+ 417          float getParameter(u8 PID_N)
+ 418          {
+ 419   1        return  g_pid_n_info[PID_N].setParameter;
+ 420   1      }
+ 421          
+ 422          //************************************
+ 423          // Method:    getErr
+ 424          // FullName:  getErr
+ 425          // Access:    public 
+ 426          // Returns:   float
+ 427          // Qualifier: ∂¡»°PIDµƒ’‚“ª¥ŒŒÛ≤Ó÷µ
+ 428          // Parameter: u8 PID_N
+ 429          //************************************
+ 430          float getErr(u8 PID_N)
+ 431          {
+ 432   1        return  g_pid_n_info[PID_N].err;
+ 433   1      }
+ 434          
+ 435          //************************************
+ 436          // Method:    getErrLast
+ 437          // FullName:  getErrLast
+ 438          // Access:    public 
+ 439          // Returns:   float
+ 440          // Qualifier: ∂¡»°PIDµƒ…œ“ª¥ŒŒÛ≤Ó÷µ
+ 441          // Parameter: u8 PID_N
+ 442          //************************************
+ 443          float getErrLast(u8 PID_N)
+ 444          {
+ 445   1        return  g_pid_n_info[PID_N].err_last;
+ 446   1      }
+ 447          
+ 448          //************************************
+ 449          // Method:    getKp
+ 450          // FullName:  getKp
+ 451          // Access:    public 
+ 452          // Returns:   float
+ 453          // Qualifier: ∂¡»°PIDµƒKp÷µ
+ 454          // Parameter: u8 PID_N
+ 455          //************************************
+ 456          float getKp(u8 PID_N)
+ 457          {
+ 458   1        return  g_pid_n_info[PID_N].Kp;
+ 459   1      }
+ 460          
+ 461          //************************************
+ 462          // Method:    getKi
+ 463          // FullName:  getKi
+ 464          // Access:    public 
+ 465          // Returns:   float
+ 466          // Qualifier: ∂¡»°PIDµƒKi÷µ
+ 467          // Parameter: u8 PID_N
+ 468          //************************************
+ 469          float getKi(u8 PID_N)
+ 470          {
+ 471   1        return  g_pid_n_info[PID_N].Ki;
+ 472   1      }
+ 473          
+ 474          //************************************
+ 475          // Method:    getKd
+C51 COMPILER V8.05a   PID                                                                  08/09/2017 16:33:13 PAGE 9   
+
+ 476          // FullName:  getKd
+ 477          // Access:    public 
+ 478          // Returns:   float
+ 479          // Qualifier: ∂¡»°pidµƒKd≤Œ ˝÷µ
+ 480          // Parameter: u8 PID_N
+ 481          //************************************
+ 482          float getKd(u8 PID_N)
+ 483          {
+ 484   1        return  g_pid_n_info[PID_N].Kd;
+ 485   1      }
+ 486          
+ 487          //************************************
+ 488          // Method:    getOutput
+ 489          // FullName:  getOutput
+ 490          // Access:    public 
+ 491          // Returns:   float
+ 492          // Qualifier: ∂¡»°pid ‰≥ˆ÷µ
+ 493          // Parameter: u8 PID_N
+ 494          //************************************
+ 495          float getOutput(u8 PID_N)
+ 496          {
+ 497   1        return  g_pid_n_info[PID_N].output;
+ 498   1      }
+ 499          
+ 500          //************************************
+ 501          // Method:    getIntegral
+ 502          // FullName:  getIntegral
+ 503          // Access:    public 
+ 504          // Returns:   float
+ 505          // Qualifier: ∂¡»°pidª˝∑÷÷µ
+ 506          // Parameter: u8 PID_N
+ 507          //************************************
+ 508          float getIntegral(u8 PID_N)
+ 509          {
+ 510   1        return  g_pid_n_info[PID_N].integral;
+ 511   1      }
+ 512          
+ 513          //************************************
+ 514          // Method:    setMaxError
+ 515          // FullName:  setMaxError
+ 516          // Access:    public 
+ 517          // Returns:   float
+ 518          // Qualifier: set max error of pid calculate can be awlloed
+ 519          // Parameter: u8 PID_N
+ 520          //************************************
+ 521          void setMaxError(u8 PID_N,float err_max)
+ 522          {
+ 523   1        g_pid_n_info[PID_N].err_max = err_max;
+ 524   1      }
+ 525          
+ 526          //************************************
+ 527          // Method:    PID
+ 528          // FullName:  PID
+ 529          // Access:    public 
+ 530          // Returns:   bit
+ 531          // Qualifier: …Ë÷√∫√≤Œ ˝∫Û π”√¥À∫Ø ˝Ω¯––pid‘ÀÀ„£¨÷Æ∫Û π”√get**∫Ø ˝ªÒ»°º∆À„∫Ûµƒ÷µ£¨–Ë“™œ»¥Úø™pid‘Ÿ π”√¥À∫Ø 
+             -˝
+ 532          //            ΩˆÃ·π©Œª÷√¿‡PIDÀ„∑®
+ 533          // Parameter: u8 PID_N
+ 534          //************************************
+ 535          void PosClassPID(u8 PID_N,u8 PID_MODE)
+ 536          {
+C51 COMPILER V8.05a   PID                                                                  08/09/2017 16:33:13 PAGE 10  
+
+ 537   1        if(g_pid_n_info[PID_N].state)
+ 538   1        {
+ 539   2          switch(PID_MODE)
+ 540   2          {
+ 541   3            case POSITION:
+ 542   3              Position_PID(PID_N);
+ 543   3              break;
+ 544   3            case INTEGRAL_SEPARATE:
+ 545   3              Integral_Separa_PID(PID_N);
+ 546   3              break;
+ 547   3            case ANTI_WINDUP:
+ 548   3              Anti_Windup_PID(PID_N);
+ 549   3              break;
+ 550   3            case TRAPEZOIDAL:
+ 551   3              Trapezoidal_Integral_PID(PID_N);
+ 552   3              break;
+ 553   3          }
+ 554   2        }
+ 555   1      }
+ 556          
+ 557          //************************************
+ 558          // Method:    IncClassPID
+ 559          // FullName:  IncClassPID
+ 560          // Access:    public 
+ 561          // Returns:   bit
+ 562          // Qualifier: …Ë÷√∫√≤Œ ˝∫Û π”√¥À∫Ø ˝Ω¯––pid‘ÀÀ„£¨÷Æ∫Û π”√get**∫Ø ˝ªÒ»°º∆À„∫Ûµƒ÷µ£¨–Ë“™œ»¥Úø™pid‘Ÿ π”√¥À∫Ø 
+             -˝
+ 563          //            ΩˆÃ·π©‘ˆ¡ø¿‡PIDÀ„∑®
+ 564          // Parameter: u8 PID_N
+ 565          //************************************
+ 566          void IncClassPID(u8 PID_N,u8 PID_MODE)
+ 567          {
+ 568   1        if(g_pid_n_info[PID_N].state)
+ 569   1        {
+ 570   2          switch(PID_MODE)
+ 571   2          {
+ 572   3            case INCREMENTAL:
+ 573   3              Incremental_PID(PID_N);
+ 574   3              break;
+ 575   3          }
+ 576   2        }
+ 577   1      }
+
+
+MODULE INFORMATION:   STATIC OVERLAYABLE
+   CODE SIZE        =   4378    ----
+   CONSTANT SIZE    =   ----    ----
+   XDATA SIZE       =    130      65
+   PDATA SIZE       =   ----    ----
+   DATA SIZE        =   ----    ----
+   IDATA SIZE       =   ----    ----
+   BIT SIZE         =   ----    ----
+END OF MODULE INFORMATION.
+
+
+C51 COMPILATION COMPLETE.  0 WARNING(S),  0 ERROR(S)

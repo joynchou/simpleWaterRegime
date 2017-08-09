@@ -1,0 +1,69 @@
+C51 COMPILER V8.05a   74HC595                                                              08/09/2017 16:25:15 PAGE 1   
+
+
+C51 COMPILER V8.05a, COMPILATION OF MODULE 74HC595
+OBJECT MODULE PLACED IN .\74HC595.obj
+COMPILER INVOKED BY: C:\Keil_v5\C51\BIN\C51.EXE ..\HARDWARE\COMMON_HARDWARE\74H\74HC595.C LARGE WARNINGLEVEL(0) BROWSE D
+                    -EBUG OBJECTEXTEND PRINT(.\74HC595.lst) TABS(2) OBJECT(.\74HC595.obj)
+
+line level    source
+
+   1          /************************************************************
+   2          * 组织名称：
+   3          * 文件名称: K:\单片机相关\电子大赛程序框架\HARDWARE\DEVICES\COMMON_DEVICES\74H\74HC595.C
+   4          * 作者:     
+   5          * 版本:    
+   6          * 日期:     2017/07/10
+   7          * 描述: 595的驱动程序
+   8          * 历史修改记录:
+   9          * <作者> <时间> <版本 > <描述>
+  10          * 
+  11          ***********************************************************/
+  12          
+  13          #include "74HC595.H"
+  14          //暂未完成
+  15          void HC595_Init(pin1,pin2)
+  16          {
+  17   1        GPIO_InitTypeDef HC595_Pin;
+  18   1        HC595_Pin.Mode = GPIO_PullUp;
+  19   1        HC595_Pin.Pin = pin1;
+  20   1        GPIO_Inilize(GPIO_P0,&HC595_Pin);
+  21   1      }
+  22          //暂未完成
+  23          void HC595SendData(unsigned char SendVal)
+  24          {
+  25   1        unsigned char i;
+  26   1        for (i = 0; i < 8; i++)
+  27   1        {
+  28   2          if ((SendVal << i) & 0x80)
+  29   2          { 
+  30   3            MOSIO_HIGH;
+  31   3          }
+  32   2          else
+  33   2          {
+  34   3            MOSIO_LOW;
+  35   3          } 
+  36   2          S_CLK_LOW;
+  37   2          NOP2();
+  38   2          S_CLK_HIGH;
+  39   2        }
+  40   1        R_CLK_LOW;
+  41   1        NOP2();
+  42   1        R_CLK_HIGH;
+  43   1      }
+
+
+MODULE INFORMATION:   STATIC OVERLAYABLE
+   CODE SIZE        =     42    ----
+   CONSTANT SIZE    =   ----    ----
+   XDATA SIZE       =   ----       5
+   PDATA SIZE       =   ----    ----
+   DATA SIZE        =   ----    ----
+   IDATA SIZE       =   ----    ----
+   BIT SIZE         =   ----    ----
+END OF MODULE INFORMATION.
+
+C51 COMPILER V8.05a   74HC595                                                              08/09/2017 16:25:15 PAGE 2   
+
+
+C51 COMPILATION COMPLETE.  0 WARNING(S),  0 ERROR(S)

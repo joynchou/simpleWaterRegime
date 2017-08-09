@@ -1,0 +1,79 @@
+C51 COMPILER V8.05a   LED                                                                  08/09/2017 16:33:13 PAGE 1   
+
+
+C51 COMPILER V8.05a, COMPILATION OF MODULE LED
+OBJECT MODULE PLACED IN .\LED.obj
+COMPILER INVOKED BY: C:\Keil_v5\C51\BIN\C51.EXE ..\HARDWARE\LED\LED.c LARGE WARNINGLEVEL(0) BROWSE DEBUG OBJECTEXTEND PR
+                    -INT(.\LED.lst) TABS(2) OBJECT(.\LED.obj)
+
+line level    source
+
+   1          
+   2          #include "LED.H"
+   3          
+   4          
+   5          static bit Board_LED_State=OFF;
+   6          bit Board_LED_Init(void)
+   7          {
+   8   1          GPIO_InitTypeDef    GPIO_InitStructure;     //结构定义
+   9   1          GPIO_InitStructure.Pin  = 5;      //指定要初始化的IO, GPIO_Pin_0 ~ GPIO_Pin_7, 或操作
+  10   1          GPIO_InitStructure.Mode = GPIO_PullUp;       //指定IO的输入或输出方式,GPIO_PullUp,GPIO_HighZ,GPIO_OUT_
+             -OD,GPIO_OUT_PP
+  11   1          GPIO_Inilize(GPIO_P5,&GPIO_InitStructure);  //初始化
+  12   1          open_Board_LED();
+  13   1          delay_ms(200);
+  14   1          close_Board_LED();
+  15   1          delay_ms(200);
+  16   1         return 1;
+  17   1      }
+  18          void open_Board_LED(void)
+  19          {
+  20   1         P55=0;
+  21   1         Board_LED_State=ON;
+  22   1      }
+  23          void close_Board_LED(void)
+  24          {
+  25   1        P55=1;
+  26   1        Board_LED_State=OFF;
+  27   1      
+  28   1      }
+  29          void blink(u8 time)
+  30          {
+  31   1          while(time--)
+  32   1          {
+  33   2              open_Board_LED();
+  34   2              delay_ms(200);
+  35   2              close_Board_LED();
+  36   2              delay_ms(200);
+  37   2            
+  38   2          }
+  39   1      }
+  40          bit getBoard_LED_State(void)
+  41          {
+  42   1         return Board_LED_State;
+  43   1      }
+  44          void Board_LED_PWM(u8 luminance)
+  45          {
+  46   1           if(Board_LED_State)
+  47   1           {
+  48   2             
+  49   2             
+  50   2           }
+  51   1        
+  52   1      }
+
+C51 COMPILER V8.05a   LED                                                                  08/09/2017 16:33:13 PAGE 2   
+
+
+MODULE INFORMATION:   STATIC OVERLAYABLE
+   CODE SIZE        =     93    ----
+   CONSTANT SIZE    =   ----    ----
+   XDATA SIZE       =   ----       4
+   PDATA SIZE       =   ----    ----
+   DATA SIZE        =   ----    ----
+   IDATA SIZE       =   ----    ----
+   BIT SIZE         =      1    ----
+END OF MODULE INFORMATION.
+
+
+C51 COMPILATION COMPLETE.  0 WARNING(S),  0 ERROR(S)

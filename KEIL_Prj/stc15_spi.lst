@@ -1,0 +1,152 @@
+C51 COMPILER V8.05a   STC15_SPI                                                            08/09/2017 16:25:16 PAGE 1   
+
+
+C51 COMPILER V8.05a, COMPILATION OF MODULE STC15_SPI
+OBJECT MODULE PLACED IN .\stc15_spi.obj
+COMPILER INVOKED BY: C:\Keil_v5\C51\BIN\C51.EXE ..\HARDWARE\COMMON_HARDWARE\BSP\SPI\stc15_spi.c LARGE WARNINGLEVEL(0) BR
+                    -OWSE DEBUG OBJECTEXTEND PRINT(.\stc15_spi.lst) TABS(2) OBJECT(.\stc15_spi.obj)
+
+line level    source
+
+   1          /************************************************************
+   2          * 组织名称： (C), 1988-1999, Tech. Co., Ltd.
+   3          * 文件名称: test.cpp
+   4          * 作者:
+   5          * 版本 :
+   6          * 日期:
+   7          * 描述: // 模块描述
+   8          * 主要函数及其功能 : // 主要函数及其功能
+   9            1. -------
+  10          * 历史修改记录: // 历史修改记录
+  11          * <作者> <时间> <版本 > <描述>
+  12          * David 96/10/12 1.0 build this moudle
+  13          ***********************************************************/
+  14          //------------------------------------------------
+  15          //头文件
+  16          #include "stc15_spi.h"
+  17          #include "../DELAY/DELAY.H"
+  18          
+  19          static u8   bdata sta;   //状态标志
+  20          sbit  RX_DR =sta^6;
+  21          sbit  TX_DS =sta^5;
+  22          sbit  MAX_RT  =sta^4;
+  23          
+  24          /****************************************************************************************************
+  25          /*函数：uint SPI_RW(uint uchar)
+  26          /*功能：NRF24L01的SPI写时序
+  27          /****************************************************************************************************/
+  28          u8 SPI_RW(u8 uchars)
+  29          {
+  30   1        u8 bit_ctr;
+  31   1        for(bit_ctr=0;bit_ctr<8;bit_ctr++) // output 8-bit
+  32   1        {
+  33   2          MOSI = (uchars & 0x80);         // output 'uchar', MSB to MOSI
+  34   2          uchars = (uchars << 1);           // shift next bit into MSB..
+  35   2          SCK = 1;                      // Set SCK high..
+  36   2          uchars |= MISO;             // capture current MISO bit
+  37   2          SCK = 0;                  // ..then set SCK low again 
+  38   2        }
+  39   1        return(uchars);                 // return read uchar
+  40   1      }
+  41          /****************************************************************************************************
+  42          /*函数：uchar SPI_Read(uchar reg)
+  43          /*功能：NRF24L01的SPI时序
+  44          /****************************************************************************************************/
+  45          u8 SPI_Read(u8 reg)
+  46          {
+  47   1        u8 reg_val;
+  48   1        
+  49   1        CSN = 0;                // CSN low, initialize SPI communication...
+  50   1        SPI_RW(reg);            // Select register to read from..
+  51   1        reg_val = SPI_RW(0);    // ..then read registervalue
+  52   1        CSN = 1;                // CSN high, terminate SPI communication
+  53   1        
+  54   1        return(reg_val);        // return register value
+C51 COMPILER V8.05a   STC15_SPI                                                            08/09/2017 16:25:16 PAGE 2   
+
+  55   1      }
+  56          /****************************************************************************************************/
+  57          /*功能：NRF24L01读写寄存器函数
+  58          /****************************************************************************************************/
+  59          u8 SPI_RW_Reg(u8 reg, u8 value)
+  60          {
+  61   1        u8 status;
+  62   1        
+  63   1        CSN = 0;                   // CSN low, init SPI transaction
+  64   1        status = SPI_RW(reg);      // select register
+  65   1        SPI_RW(value);             // ..and write value to it..
+  66   1        CSN = 1;                   // CSN high again
+  67   1        
+  68   1        return(status);            // return nRF24L01 status uchar
+  69   1      }
+  70          /****************************************************************************************************/
+  71          /*函数：uint SPI_Read_Buf(uchar reg, uchar *pBuf, uchar uchars)
+  72          /*功能: 用于读数据，reg：为寄存器地址，pBuf：为待读出数据地址，uchars：读出数据的个数
+  73          /****************************************************************************************************/
+  74          u8 SPI_Read_Buf(u8 reg, u8 *pBuf, u8 uchars)
+  75          {
+  76   1        u8 status,uchar_ctr;
+  77   1        
+  78   1        CSN = 0;                        // Set CSN low, init SPI tranaction
+  79   1        status = SPI_RW(reg);           // Select register to write to and read status uchar
+  80   1        
+  81   1        for(uchar_ctr=0;uchar_ctr<uchars;uchar_ctr++)
+  82   1          pBuf[uchar_ctr] = SPI_RW(0);    // 
+  83   1        
+  84   1        CSN = 1;                           
+  85   1        
+  86   1        return(status);                    // return nRF24L01 status uchar
+  87   1      }
+  88          /*********************************************************************************************************
+  89          /*函数：uint SPI_Write_Buf(uchar reg, uchar *pBuf, uchar uchars)
+  90          /*功能: 用于写数据：为寄存器地址，pBuf：为待写入数据地址，uchars：写入数据的个数
+  91          /*********************************************************************************************************
+             -/
+  92          u8 SPI_Write_Buf(u8 reg, u8 *pBuf, u8 uchars)
+  93          {
+  94   1        u8 status,uchar_ctr;
+  95   1        
+  96   1        CSN = 0;            //SPI使能       
+  97   1        status = SPI_RW(reg);
+  98   1        delay_us(10); 
+  99   1        for(uchar_ctr=0; uchar_ctr<uchars; uchar_ctr++) //
+ 100   1          SPI_RW(*pBuf++);
+ 101   1        CSN = 1;           //关闭SPI
+ 102   1        return(status);    // 
+ 103   1      }
+ 104          
+ 105          void setSPIsta(u8 uchars)
+ 106          {
+ 107   1        sta = uchars;
+ 108   1      }
+ 109          
+ 110          u8 getSPIsta()
+ 111          {
+ 112   1        return sta;
+ 113   1      }
+ 114          
+ 115          void setSPIRX_DR(u8 value)
+C51 COMPILER V8.05a   STC15_SPI                                                            08/09/2017 16:25:16 PAGE 3   
+
+ 116          {
+ 117   1        RX_DR = value;
+ 118   1      }
+ 119          
+ 120          bit getSPIRX_DR()
+ 121          {
+ 122   1        return RX_DR;
+ 123   1      }
+
+
+MODULE INFORMATION:   STATIC OVERLAYABLE
+   CODE SIZE        =    198    ----
+   CONSTANT SIZE    =   ----    ----
+   XDATA SIZE       =   ----      11
+   PDATA SIZE       =   ----    ----
+   DATA SIZE        =      1    ----
+   IDATA SIZE       =   ----    ----
+   BIT SIZE         =   ----    ----
+END OF MODULE INFORMATION.
+
+
+C51 COMPILATION COMPLETE.  0 WARNING(S),  0 ERROR(S)

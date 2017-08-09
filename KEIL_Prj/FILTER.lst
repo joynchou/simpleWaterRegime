@@ -1,0 +1,212 @@
+C51 COMPILER V8.05a   FILTER                                                               08/09/2017 17:33:09 PAGE 1   
+
+
+C51 COMPILER V8.05a, COMPILATION OF MODULE FILTER
+OBJECT MODULE PLACED IN .\FILTER.obj
+COMPILER INVOKED BY: C:\Keil_v5\C51\BIN\C51.EXE ..\SOFTWARE\TASK\COMMON_SOFTWARE\ALGORITHM\DIGITAL_FILTER\FILTER\FILTER.
+                    -C LARGE WARNINGLEVEL(0) BROWSE DEBUG OBJECTEXTEND PRINT(.\FILTER.lst) TABS(2) OBJECT(.\FILTER.obj)
+
+line level    source
+
+   1          #include <math.h>
+   2          #include "FILTER.H"
+   3          
+   4          
+   5          //ÖĞÎ»ÖµÆ½¾ùÂË²¨·¨£¨·ÀÂö³å¸ÉÈÅÆ½¾ùÂË²¨·¨£©
+   6          //·½·¨½âÎö£º
+   7          //Ïàµ±ÓÚÖĞÎ»ÖµÂË²¨+ËãÊõÆ½¾ùÂË²¨£¬Á¬Ğø²ÉÑùN¸öÊı¾İ£¬È¥µôÒ»¸ö×î´óÖµºÍÒ»¸ö×îĞ¡Öµ£¬È»ºó¼ÆËãN-2¸öÊı¾İµÄËãÊõÆ½¾ùÖ
+             -µ¡£
+   8          //NÖµµÄÑ¡È¡£º3-14
+   9          //ÓÅµã£ºÈÚºÏÁËÁ½ÖÖÂË²¨·¨µÄÓÅµã
+  10          //¶ÔÓÚÅ¼È»³öÏÖµÄÂö³åĞÔ¸ÉÈÅ£¬¿ÉÏû³ıÓÉÓÚÂö³å¸ÉÈÅËùÒıÆğµÄ²ÉÑùÖµÆ«²î¡£
+  11          //È±µã£º
+  12          //²âÁ¿ËÙ¶È½ÏÂı£¬ºÍËã·¨Æ½¾ùÂË²¨Ò»Ñù£¬ÀË·ÑRAM¡£
+  13          
+  14          float filter(float *ary, u16 num, float MaxValue, float MinValue)
+  15          {
+  16   1        u16 angleDataloopTemp2; //È¡Æ½¾ùµÄ¸öÊı
+  17   1        double finalData = 0;
+  18   1        float maxValue = MinValue;
+  19   1        float minValue = MaxValue;
+  20   1        for (angleDataloopTemp2 = 0; angleDataloopTemp2 < num; angleDataloopTemp2++) //ÕÒ³ö×î´óÖµºÍ×îĞ¡Öµ
+  21   1        {
+  22   2          if (ary[angleDataloopTemp2] > maxValue) //È¥µô×î´óÖµ×îĞ¡Öµ
+  23   2          {
+  24   3            maxValue = ary[angleDataloopTemp2];
+  25   3          }
+  26   2          if (ary[angleDataloopTemp2] < minValue) //È¥µô×î´óÖµ×îĞ¡Öµ
+  27   2          {
+  28   3            minValue = ary[angleDataloopTemp2];
+  29   3          }
+  30   2          finalData += ary[angleDataloopTemp2];
+  31   2        }
+  32   1        finalData -= (maxValue + minValue);  //È¥µô×î´óÖµ×îĞ¡Öµ
+  33   1        finalData /= (num - 2);  //È¡Æ½¾ùÖµ
+  34   1        return fabs((float)finalData);
+  35   1      }
+  36          //¿¨¶ûÂüÂË²¨Ëã·¨
+  37          double KalmanFilter(const double ResrcData, double ProcessNiose_Q, double MeasureNoise_R, double InitialPr
+             -ediction)
+  38          {
+  39   1        double R = MeasureNoise_R;
+  40   1        double Q = ProcessNiose_Q;
+  41   1      
+  42   1        static        double x_last;
+  43   1      
+  44   1        double x_mid = x_last;
+  45   1        double x_now;
+  46   1      
+  47   1        static        double p_last;
+  48   1      
+  49   1        double p_mid;
+  50   1        double p_now;
+  51   1        double kg;
+  52   1      
+C51 COMPILER V8.05a   FILTER                                                               08/09/2017 17:33:09 PAGE 2   
+
+  53   1        x_mid = x_last; //x_last=x(k-1|k-1),x_mid=x(k|k-1)
+  54   1        p_mid = p_last + Q; //p_mid=p(k|k-1),p_last=p(k-1|k-1),Q=ÔëÉù
+  55   1        kg = p_mid / (p_mid + R); //kgÎªkalman filter£¬RÎªÔëÉù
+  56   1        x_now = x_mid + kg*(ResrcData - x_mid);//¹À¼Æ³öµÄ×îÓÅÖµ
+  57   1      
+  58   1        p_now = (1 - kg)*p_mid;//×îÓÅÖµ¶ÔÓ¦µÄcovariance       
+  59   1      
+  60   1        p_last = p_now; //¸üĞÂcovarianceÖµ
+  61   1        x_last = x_now; //¸üĞÂÏµÍ³×´Ì¬Öµ
+  62   1      
+  63   1        return x_now;
+  64   1      }
+  65          //1.ÏŞ·ùÂË²¨Ëã·¨£¨³ÌĞòÅĞ¶ÏÂË²¨Ëã·¨£©
+  66          //·½·¨½âÎö£º
+  67          //¸ù¾İ¾­ÑéÅĞ¶Ï£¬È·¶¨Á½´Î²ÉÑùÔÊĞíµÄ×î´óÆ«²îÖµ£¨Éè¶¨ÎªA£©£¬Ã¿´Î¼ì²âµ½ĞÂÖµÊ±ÅĞ¶Ï£º
+  68          //Èç¹û±¾´ÎÖµÓëÉÏ´ÎÖµÖ®²î <= A£¬Ôò±¾´ÎÖµÓĞĞ§£¬
+  69          //Èç¹û±¾´ÎÖµÓëÉÏ´ÎÖµÖ»²î > A, Ôò±¾´ÎÖµÎŞĞ§£¬·ÅÆú±¾´ÎÖµ£¬ÓÃÉÏ´ÎÖµ´úÌæ±¾´ÎÖµ¡£
+  70          //ÓÅµã£º
+  71          //ÄÜÓĞĞ§¿Ë·şÒòÅ¼È»ÒòËØÒıÆğµÄÂö³å¸ÉÈÅ
+  72          //È±µã£º
+  73          //ÎŞ·¨ÒÖÖÆÄÇÖÖÖÜÆÚĞÔµÄ¸ÉÈÅ£¬Æ½»¬¶È²î
+  74          //************************************
+  75          // Method:    limitingFilter
+  76          // FullName:  limitingFilter
+  77          // Access:    public 
+  78          // Returns:   float
+  79          // Qualifier: //1.ÏŞ·ùÂË²¨Ëã·¨£¨³ÌĞòÅĞ¶ÏÂË²¨Ëã·¨£©
+  80          // Parameter: float value:ĞèÒªÂË²¨µÄÊı¾İ
+  81          // Parameter: float A£º¿É½ÓÊÜµÄ×î´óÊı¾İ²î
+  82          //************************************
+  83          float limitingFilter(float value, float A)
+  84          {
+  85   1        static float   lastValue =0;
+  86   1        if (fabs(value - lastValue) > A)//±¾´ÎÖµÎŞĞ§
+  87   1        {
+  88   2          return (float)lastValue;
+  89   2        }
+  90   1        else//±¾´ÎÖµÓĞĞ§
+  91   1        {
+  92   2      
+  93   2          lastValue = value;
+  94   2          return fabs((float)value);
+  95   2      
+  96   2        }
+  97   1      }
+  98          //»¬¶¯Æ½¾ùÂË²¨
+  99          //·½·¨½âÎö£º
+ 100          //°ÑÁ¬ĞøÈ¡N¸ö²ÉÑùÖµ¿´³ÉÒ»¸ö¶ÓÁĞ£¬¶ÓÁĞµÄ³¤¶È¹Ì¶¨ÎªN£¬Ã¿´Î²ÉÑùµ½Ò»¸öĞÂÊı¾İ·ÅÈë¶ÓÎ²£¬²¢ÈÓµôÔ­À´¶ÓÊ×µÄÒ»´ÎÊı¾İ
+             -£¨ÏÈ½øÏÈ³ö£©¡£
+ 101          //°Ñ¶ÓÁĞÖĞµÄN¸öÊı¾İ½øĞĞËãÊõÆ½¾ùÔËËã£¬¾Í¿É»ñµÃĞÂµÄÂË²¨½á¹û¡£NÖµµÄÑ¡È¡£ºÒ»°ã12.
+ 102          //ÓÅµã£º
+ 103          //¶ÔÖÜÆÚĞÔ¸ÉÈÅÓĞÁ¼ºÃµÄÒÖÖÆ×÷ÓÃ£¬Æ½»¬¶È¸ß£¬ÊÊÓ¦ÓÚ¸ßÆµÕñµ´µÄÏµÍ³
+ 104          //È±µã£º
+ 105          //ÁéÃô¶ÈµÍ£¬¶ÔÅ¼È»³öÏÖµÄÂö³åĞÔ¸ÉÈÅµÄÒÖÖÆ×÷ÓÃ½Ï²î¡£²»Ò×Ïû³ıÓÉÓÚÂö³å¸ÉÈÅËùÒıÆğ´òµÄ²ÉÑùÖµÆ«²î£¬²»ÊÊÓÃÓÚÂö³å¸É
+             -ÈÅ±È½ÏÑÏÖØµÄ³¡ºÏ
+ 106          //ÀË·ÑRAM
+ 107          //************************************
+ 108          // Method:    movingAverageFilter
+ 109          // FullName:  movingAverageFilter
+ 110          // Access:    public 
+ 111          // Returns:   float
+ 112          // Qualifier: //»¬¶¯Æ½¾ùÂË²¨,´°¿ÚÖµÇë¸Äºê¶¨Òå
+C51 COMPILER V8.05a   FILTER                                                               08/09/2017 17:33:09 PAGE 3   
+
+ 113          // Parameter: float value£ºĞèÒªÂË²¨µÄÊıÖµ
+ 114          //************************************
+ 115          float movingAverageFilter(float value)
+ 116          {
+ 117   1      #define FILTER_N 10
+ 118   1        static double filter_buf[FILTER_N + 1];
+ 119   1        u16 i;
+ 120   1        double filter_sum = 0;
+ 121   1        filter_buf[FILTER_N] = value;
+ 122   1        for (i = 0; i < FILTER_N; i++) {
+ 123   2          filter_buf[i] = filter_buf[i + 1]; // ËùÓĞÊı¾İ×óÒÆ£¬µÍÎ»ÈÔµô
+ 124   2          filter_sum += filter_buf[i];
+ 125   2        }
+ 126   1        return (float)(fabs(filter_sum / FILTER_N));
+ 127   1      }
+ 128          
+ 129          
+ 130          /*
+ 131          A¡¢Ãû³Æ£ºÏû¶¶ÂË²¨·¨
+ 132          B¡¢·½·¨£º
+ 133          ÉèÖÃÒ»¸öÂË²¨¼ÆÊıÆ÷£¬½«Ã¿´Î²ÉÑùÖµÓëµ±Ç°ÓĞĞ§Öµ±È½Ï£º
+ 134          Èç¹û²ÉÑùÖµ=µ±Ç°ÓĞĞ§Öµ£¬Ôò¼ÆÊıÆ÷ÇåÁã£»
+ 135          Èç¹û²ÉÑùÖµ<>µ±Ç°ÓĞĞ§Öµ£¬Ôò¼ÆÊıÆ÷+1£¬²¢ÅĞ¶Ï¼ÆÊıÆ÷ÊÇ·ñ>=ÉÏÏŞN£¨Òç³ö£©£»
+ 136          Èç¹û¼ÆÊıÆ÷Òç³ö£¬Ôò½«±¾´ÎÖµÌæ»»µ±Ç°ÓĞĞ§Öµ£¬²¢Çå¼ÆÊıÆ÷¡£
+ 137          C¡¢ÓÅµã£º
+ 138          ¶ÔÓÚ±ä»¯»ºÂıµÄ±»²â²ÎÊıÓĞ½ÏºÃµÄÂË²¨Ğ§¹û£»
+ 139          ¿É±ÜÃâÔÚÁÙ½çÖµ¸½½ü¿ØÖÆÆ÷µÄ·´¸´¿ª/¹ØÌø¶¯»òÏÔÊ¾Æ÷ÉÏÊıÖµ¶¶¶¯¡£
+ 140          D¡¢È±µã£º
+ 141          ¶ÔÓÚ¿ìËÙ±ä»¯µÄ²ÎÊı²»ÒË£»
+ 142          Èç¹ûÔÚ¼ÆÊıÆ÷Òç³öµÄÄÇÒ»´Î²ÉÑùµ½µÄÖµÇ¡ºÃÊÇ¸ÉÈÅÖµ,Ôò»á½«¸ÉÈÅÖµµ±×÷ÓĞĞ§Öµµ¼ÈëÏµÍ³¡£
+ 143           */
+ 144           //************************************
+ 145           // Method:    shudderingFilter
+ 146           // FullName:  shudderingFilter
+ 147           // Access:    public 
+ 148           // Returns:   float
+ 149           // Qualifier: Ãû³Æ£ºÏû¶¶ÂË²¨·¨
+ 150           // Parameter: float value£º´«½øÀ´µÄÊıÖµ£¬Èç¹û²»ÊÇfloatÇëÇ¿ÖÆ×ª»»³Éfloat
+ 151           // Parameter: u8 filter_n£º¼ÆÊıÆ÷µÄÉÏÏŞÖµ£¬ÖµÔ½´óÂË²¨µÄ½á¹ûÔ½ÎÈ¶¨£¬Ô½Ğ¡Ô½²»ÎÈ¶¨£¬µ«ÊÇÖµÌ«´óÊı¾İ»áÊ§Õæ
+ 152           //************************************
+ 153          float shudderingFilter(float value, u16 filter_n)
+ 154          {
+ 155   1      
+ 156   1        static u16 i = 0;//¼ÆÊıÆ÷
+ 157   1        static float lastValue=0;//ÉÏÒ»´ÎµÄ½á¹û
+ 158   1        float newValue;//ÕâÒ»´ÎµÄĞÂµÄ½á¹û;
+ 159   1        newValue = value;//´«Öµ
+ 160   1        if (!(fabs(newValue - lastValue) < 0.0001f))//Èç¹ûÉÏÒ»´ÎµÄ½á¹û²»µÈÓÚÕâÒ»´ÎµÄ½á¹û
+ 161   1        {
+ 162   2          i++;
+ 163   2          if (i > filter_n) {
+ 164   3            i = 0;
+ 165   3            lastValue = newValue;
+ 166   3          }
+ 167   2          else
+ 168   2          {
+ 169   3            return  lastValue;
+ 170   3          }
+ 171   2        }
+ 172   1        else//Èç¹ûÉÏÒ»´ÎµÄ½á¹ûµÈÓÚÕâÒ»´ÎµÄ½á¹û
+ 173   1        {
+ 174   2          i = 0;
+C51 COMPILER V8.05a   FILTER                                                               08/09/2017 17:33:09 PAGE 4   
+
+ 175   2        }
+ 176   1        return  lastValue;
+ 177   1      
+ 178   1      }
+
+
+MODULE INFORMATION:   STATIC OVERLAYABLE
+   CODE SIZE        =   1395    ----
+   CONSTANT SIZE    =   ----    ----
+   XDATA SIZE       =     62      95
+   PDATA SIZE       =   ----    ----
+   DATA SIZE        =   ----    ----
+   IDATA SIZE       =   ----    ----
+   BIT SIZE         =   ----    ----
+END OF MODULE INFORMATION.
+
+
+C51 COMPILATION COMPLETE.  0 WARNING(S),  0 ERROR(S)

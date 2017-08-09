@@ -1,0 +1,106 @@
+C51 COMPILER V8.05a   PHSENSOR                                                             08/09/2017 19:24:38 PAGE 1   
+
+
+C51 COMPILER V8.05a, COMPILATION OF MODULE PHSENSOR
+OBJECT MODULE PLACED IN .\phSensor.obj
+COMPILER INVOKED BY: C:\Keil_v5\C51\BIN\C51.EXE ..\HARDWARE\SENSOR\phSensor\phSensor.c LARGE WARNINGLEVEL(0) BROWSE DEBU
+                    -G OBJECTEXTEND PRINT(.\phSensor.lst) TABS(2) OBJECT(.\phSensor.obj)
+
+line level    source
+
+   1          #include "phSensor.h"
+   2           
+   3          typedef struct
+   4          {
+   5            float k;
+   6            float b;
+   7            u8 state;
+   8            float PH_Value;
+   9          }Equation;
+  10          
+  11          static Equation PH[PH_NUM];
+  12          
+  13           //************************************
+  14           // Method:    PH_config
+  15           // FullName:  PH_config
+  16           // Access:    public 
+  17           // Returns:   void
+  18           // Qualifier: ph计初始化
+  19           // Parameter: u8 PH_N：哪一个ph计
+  20           // Parameter: float k
+  21           // Parameter: float b
+  22           //************************************
+  23           void PH_config(u8 PH_N, float k, float b)
+  24          {
+  25   1        ADS1115_Config();
+  26   1        open_ADS1115(PH_N);
+  27   1        PH[PH_N].k = k;
+  28   1        PH[PH_N].b = b;
+  29   1      }
+  30          
+  31          //************************************
+  32          // Method:    setPHCoefficient
+  33          // FullName:  setPHCoefficient
+  34          // Access:    public 
+  35          // Returns:   void
+  36          // Qualifier: 设置ph的斜率和截距
+  37          // Parameter: u8 PH_N
+  38          // Parameter: float k
+  39          // Parameter: float b
+  40          //************************************
+  41          void setPHCoefficient(u8 PH_N,float k,float b)
+  42          {
+  43   1        PH[PH_N].k = k;
+  44   1        PH[PH_N].b = b;
+  45   1      }
+  46          
+  47          //************************************
+  48          // Method:    getPHvalue
+  49          // FullName:  getPHvalue
+  50          // Access:    public 
+  51          // Returns:   float
+  52          // Qualifier: //此函数还可以返回上一次的PH值，不需要读取时间 ，是静态的数据，因为需要保存
+  53          // Parameter: u8 PH_N
+  54          // Parameter: u8 whichPHvalue
+C51 COMPILER V8.05a   PHSENSOR                                                             08/09/2017 19:24:38 PAGE 2   
+
+  55          //************************************
+  56          #define FILTER_TIME  10
+  57          float getPH_Value(u8 PH_N,u8  whichPHvalue)
+  58          {
+*** WARNING C235 IN LINE 58 OF ..\HARDWARE\SENSOR\PHSENSOR\PHSENSOR.C: parameter 2: different types
+  59   1        u16 PH_ADC_Value[FILTER_TIME+1];
+  60   1        u8 i = 0;
+  61   1        static float presentPH = 0; // 当前结果
+  62   1        static float lastPH;  
+  63   1        if (whichPHvalue)  
+  64   1        {
+  65   2          for (i = 0; i < FILTER_TIME; i++)
+  66   2          {
+  67   3            PH_ADC_Value[i] = getADS1115ConvsionData(PH_N);
+  68   3          }
+  69   2          PH_ADC_Value[FILTER_TIME] = filter(PH_ADC_Value, FILTER_TIME, 65535, 0);
+  70   2          presentPH = PH_ADC_Value[FILTER_TIME] * PH[PH_N].k + PH[PH_N].b;//y=kx+b
+  71   2      
+  72   2          lastPH = presentPH;
+  73   2          return presentPH;
+  74   2        }
+  75   1        else  //返回上一次PH值结果
+  76   1        {
+  77   2          return  lastPH;
+  78   2        }
+  79   1      }
+
+
+MODULE INFORMATION:   STATIC OVERLAYABLE
+   CODE SIZE        =    361    ----
+   CONSTANT SIZE    =   ----    ----
+   XDATA SIZE       =     34      42
+   PDATA SIZE       =   ----    ----
+   DATA SIZE        =   ----    ----
+   IDATA SIZE       =   ----    ----
+   BIT SIZE         =   ----    ----
+END OF MODULE INFORMATION.
+
+
+C51 COMPILATION COMPLETE.  1 WARNING(S),  0 ERROR(S)

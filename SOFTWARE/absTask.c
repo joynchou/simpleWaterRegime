@@ -7,10 +7,10 @@
 void taskStart() _task_ 0
 {
 	setup();
-	blink(3);
+	//	blink(3);
 	os_create_task(5);
-	os_create_task(BUTTON_SCAN);
-	os_create_task(BUTTON_SOUND);
+	//os_create_task(BUTTON_SCAN);
+	//os_create_task(BUTTON_SOUND);
 	//	os_create_task(TEMPERATURE_UPDATE);
 	//	os_create_task(TIME_UPDATE);
 	os_delete_task(0);
@@ -20,7 +20,7 @@ void printDistance(void) _task_ 5
 {
 	for (;;)
 	{
-		DataScope_Get_Channel_Data(getADS1115ConvsionData(CHANNEL_1), 1);
+		DataScope_Get_Channel_Data(getPH_Value(0,1), 1);
 
 		sendScopeData(1);
 		os_wait(K_TMO, 30, 0);
@@ -38,11 +38,11 @@ void printTmp()  _task_  9
 }
 void Distance(void)  _task_ 10
 {
-#define TIME 130
+#define TIME 10
 
 	float value;
 	float actValue;
-	float Data[TIME + 1];
+	float Data[TIME+1];
 	float time = 0;
 	float distance = 0;
 
@@ -55,7 +55,7 @@ void Distance(void)  _task_ 10
 			os_wait(K_TMO, 4, 0);
 			actValue = (float)getTimerValue(HC_SR04_1);//原始数据
 			value = limitingFilter(actValue, 30000UL);//限幅滤波
-			value = shudderingFilter(value, 300);//消抖滤波
+	   value = shudderingFilter(value, 100);//消抖滤波
 			value = movingAverageFilter(value);//滑动平均滤波
 			Data[i] = value;
 		}
@@ -64,8 +64,10 @@ void Distance(void)  _task_ 10
 		distance = (time * (331.4f + 0.607*getDS18B20_Temperature(0))) / 20;
 		setDistance(HC_SR04_1, distance);
 		DataScope_Get_Channel_Data(distance, 1);
-		sendScopeData(1);
-		os_wait(K_TMO, 100, 0);
+		DataScope_Get_Channel_Data((actValue* 4.166667e-6*(331.4f + 0.607*getDS18B20_Temperature(0))) / 20, 2);
+
+		sendScopeData(2);
+	//	os_wait(K_TMO, 100, 0);
 
 		//for (i = 0; i < TIME; i++)
 		//{

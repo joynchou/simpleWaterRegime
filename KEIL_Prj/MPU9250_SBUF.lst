@@ -1,0 +1,409 @@
+C51 COMPILER V8.05a   MPU9250_SBUF                                                         08/09/2017 16:25:14 PAGE 1   
+
+
+C51 COMPILER V8.05a, COMPILATION OF MODULE MPU9250_SBUF
+OBJECT MODULE PLACED IN .\MPU9250_SBUF.obj
+COMPILER INVOKED BY: C:\Keil_v5\C51\BIN\C51.EXE ..\HARDWARE\COMMON_HARDWARE\MPU9250\MPU9250_SBUF.C LARGE WARNINGLEVEL(0)
+                    - BROWSE DEBUG OBJECTEXTEND PRINT(.\MPU9250_SBUF.lst) TABS(2) OBJECT(.\MPU9250_SBUF.obj)
+
+line level    source
+
+   1          //#include <string.h>
+   2          #include <stdio.h>
+   3          //#include <stdlib.h>
+   4          
+   5          #include "MPU9250_SBUF.H"
+   6          
+   7          enum STATE
+   8          {
+   9            STOP,RUNNING,NO = 0,YES
+  10          };
+  11          /**********private structural*********/
+  12          
+  13          struct STime//time struct
+  14          {
+  15            unsigned char ucYear;
+  16            unsigned char ucMonth;
+  17            unsigned char ucDay;
+  18            unsigned char ucHour;
+  19            unsigned char ucMinute;
+  20            unsigned char ucSecond;
+  21            unsigned short usMiliSecond;
+  22          };
+  23          struct SAcc//acceleration struct
+  24          {
+  25            short a[3];
+  26            short T;
+  27          };
+  28          struct SGyro//palstance struct
+  29          {
+  30            short w[3];
+  31            short T;
+  32          };
+  33          struct SAngle//angle struct
+  34          {
+  35            short Angle[3];
+  36            short T;
+  37          };
+  38          struct SMag//magnetic field strut
+  39          {
+  40            short h[3];
+  41            short T;
+  42          };
+  43          
+  44          struct SDStatus
+  45          {
+  46            short sDStatus[4];
+  47          };
+  48          
+  49          struct SPress
+  50          {
+  51            long lPressure;
+  52            long lAltitude;
+  53          };
+  54          
+C51 COMPILER V8.05a   MPU9250_SBUF                                                         08/09/2017 16:25:14 PAGE 2   
+
+  55          struct SLonLat
+  56          {
+  57            long lLon;
+  58            long lLat;
+  59          };
+  60          
+  61          struct SGPSV
+  62          {
+  63            short sGPSHeight;
+  64            short sGPSYaw;
+  65            long lGPSVelocity;
+  66          };
+  67          
+  68          typedef struct//the structural about JY901 modular
+  69          {
+  70            struct STime      stcTime;
+  71            struct SAcc       stcAcc;
+  72            struct SGyro      stcGyro;
+  73            struct SAngle     stcAngle;
+  74            struct SMag       stcMag;
+  75            struct SDStatus   stcDStatus;
+  76            struct SPress     stcPress;
+  77            struct SLonLat    stcLonLat;
+  78            struct SGPSV      stcGPSV;
+  79            enum STATE ModularStart;//STOP or RUNNING
+  80            enum STATE ModularSwitch;//ON or OFF
+  81            enum STATE CalcuEnd;//If calculate is finsh,the value can be read
+  82          }JY901Modular;
+  83          /************Initialization struct parameter************/
+  84          //struct STime    stcTime={0};
+  85          //struct SAcc     stcAcc={0};
+  86          //struct SGyro    stcGyro={0};
+  87          //struct SAngle     stcAngle={0};
+  88          //struct SMag     stcMag={0};
+  89          //struct SDStatus   stcDStatus={0};
+  90          //struct SPress     stcPress={0};
+  91          //struct SLonLat    stcLonLat={0};
+  92          //struct SGPSV    stcGPSV={0};
+  93          static JY901Modular MPU9250[JY901_NUM];
+  94          
+  95          //************************************
+  96          // Method:    InitJY901
+  97          // FullName:  InitJY901
+  98          // Access:    public 
+  99          // Returns:   void
+ 100          // Qualifier: Initialization of the JY901 modular on the software
+ 101          // Parameter: u8 JY901_N;the JY901 modular's number
+ 102          //************************************
+ 103          void InitJY901(u8 JY901_N)
+ 104          {
+ 105   1        MPU9250[JY901_N].ModularStart = STOP;
+ 106   1        MPU9250[JY901_N].ModularSwitch = OFF;
+ 107   1        MPU9250[JY901_N].CalcuEnd = NO;
+ 108   1        setUART1Interrupt(&CopeSerialData,JY901_N);
+ 109   1      
+ 110   1      }
+ 111          
+ 112          //************************************
+ 113          // Method:    EnableJY901
+ 114          // FullName:  EnableJY901
+ 115          // Access:    public 
+ 116          // Returns:   void
+C51 COMPILER V8.05a   MPU9250_SBUF                                                         08/09/2017 16:25:14 PAGE 3   
+
+ 117          // Qualifier: Make JY901 modular enable in software
+ 118          // Parameter: u8 JY901_N;the JY901 modular's number
+ 119          //************************************
+ 120          void EnableJY901(u8 JY901_N)
+ 121          {
+ 122   1        MPU9250[JY901_N].ModularStart = RUNNING;
+ 123   1      }
+ 124          
+ 125          //************************************
+ 126          // Method:    DisableJY901
+ 127          // FullName:  DisableJY901
+ 128          // Access:    public 
+ 129          // Returns:   void
+ 130          // Qualifier: Make JY901 modular disable in software
+ 131          // Parameter: u8 JY901_N;the JY901 modular's number
+ 132          //************************************
+ 133          void DisableJY901(u8 JY901_N)
+ 134          {
+ 135   1        MPU9250[JY901_N].ModularStart = STOP;
+ 136   1      }
+ 137          
+ 138          //************************************
+ 139          // Method:    openJY901SbufMode
+ 140          // FullName:  openJY901SbufMode
+ 141          // Access:    public 
+ 142          // Returns:   void
+ 143          // Qualifier: open JY901 modular's serial communication mode
+ 144          // Parameter: u8 JY901_N;the JY901 modular's number
+ 145          //************************************
+ 146          void openJY901SbufMode(u8 JY901_N)
+ 147          {
+ 148   1        MPU9250[JY901_N].ModularSwitch = ON;
+ 149   1      }
+ 150          
+ 151          //************************************
+ 152          // Method:    closeJY901SbufMode
+ 153          // FullName:  closeJY901SbufMode
+ 154          // Access:    public 
+ 155          // Returns:   void
+ 156          // Qualifier: close JY901 modular's serial communication mode
+ 157          // Parameter: u8 JY901_N;the JY901 modular's number
+ 158          //************************************
+ 159          void closeJY901SbufMode(u8 JY901_N)
+ 160          {
+ 161   1        MPU9250[JY901_N].ModularSwitch = OFF;
+ 162   1      }
+ 163          
+ 164          //************************************
+ 165          // Method:    getJY901Acceleration
+ 166          // FullName:  getJY901Acceleration
+ 167          // Access:    public 
+ 168          // Returns:   bit
+ 169          // Qualifier: return of the acceleration is axis do you want
+ 170          // Parameter: u8 JY901_N;the JY901 modular's number
+ 171          // Parameter: u8 axis;x,y,z choose one of them
+ 172          //************************************
+ 173          float getJY901Acceleration(u8 JY901_N,u8 axis)
+ 174          {
+ 175   1        if(MPU9250[JY901_N].CalcuEnd == YES)
+ 176   1        {
+ 177   2          return (float)MPU9250[JY901_N].stcAcc.a[axis]/32768*16;
+ 178   2        }
+C51 COMPILER V8.05a   MPU9250_SBUF                                                         08/09/2017 16:25:14 PAGE 4   
+
+ 179   1        return 0;
+ 180   1      }
+ 181          
+ 182          //************************************
+ 183          // Method:    getJY901Palstance
+ 184          // FullName:  getJY901Palstance
+ 185          // Access:    public 
+ 186          // Returns:   float
+ 187          // Qualifier: return of the Palstance is axis do you want
+ 188          // Parameter: u8 JY901_N;the JY901 modular's number
+ 189          // Parameter: u8 axis;x,y,z choose one of them
+ 190          //************************************
+ 191          float getJY901Palstance(u8 JY901_N,u8 axis)
+ 192          {
+ 193   1        if(MPU9250[JY901_N].CalcuEnd == YES)
+ 194   1        {
+ 195   2          return (float)MPU9250[JY901_N].stcGyro.w[axis]/32768*2000;
+ 196   2        }
+ 197   1        return 0;
+ 198   1      }
+ 199          
+ 200          //************************************
+ 201          // Method:    getJY901Angle
+ 202          // FullName:  getJY901Angle
+ 203          // Access:    public 
+ 204          // Returns:   float
+ 205          // Qualifier: return of the angle is axis do you want
+ 206          // Parameter: u8 JY901_N;the JY901 modular's number
+ 207          // Parameter: u8 axis;x,y,z choose one of them
+ 208          //************************************
+ 209          float getJY901Angle(u8 JY901_N,u8 axis)
+ 210          {
+ 211   1      //  if(MPU9250[JY901_N].CalcuEnd == YES)
+ 212   1        {
+ 213   2          return (float)MPU9250[JY901_N].stcAngle.Angle[axis]/32768*180;
+ 214   2        }
+ 215   1        //return 0;
+ 216   1      }
+ 217          
+ 218          //************************************
+ 219          // Method:    getJY901Magnetic
+ 220          // FullName:  getJY901Magnetic
+ 221          // Access:    public 
+ 222          // Returns:   float
+ 223          // Qualifier: return of the magnetic field is axis do you want
+ 224          // Parameter: u8 JY901_N;the JY901 modular's number
+ 225          // Parameter: u8 axis;x,y,z choose one of them
+ 226          //************************************
+ 227          float getJY901Magnetic(u8 JY901_N,u8 axis)
+ 228          { 
+ 229   1        if(MPU9250[JY901_N].CalcuEnd == YES)
+ 230   1        {
+ 231   2          return MPU9250[JY901_N].stcMag.h[axis];
+ 232   2        }
+ 233   1        return 0;
+ 234   1      }
+ 235          
+ 236          /***********private calculate**************/
+ 237          void CharToLong(char Dest[],char Source[])
+ 238          {
+ 239   1         *Dest      = Source[3];
+ 240   1         *(Dest+1)  = Source[2];
+C51 COMPILER V8.05a   MPU9250_SBUF                                                         08/09/2017 16:25:14 PAGE 5   
+
+ 241   1         *(Dest+2)  = Source[1];
+ 242   1         *(Dest+3)  = Source[0];
+ 243   1      }
+ 244          
+ 245          void CopeSerialData(u8 JY901_N)//This function need added in abstask.c to buliding a task if you want use 
+             -JY901 modular
+ 246          {
+ 247   1        u8 str_0[15],str_1[15],str_2[15];
+ 248   1        static unsigned char ucRxBuffer[12];//数据接收缓冲
+ 249   1        static unsigned char ucRxCnt = 0; 
+ 250   1        if(MPU9250[JY901_N].ModularStart)
+ 251   1        {
+ 252   2          if(MPU9250[JY901_N].ModularSwitch)
+ 253   2          {
+ 254   3            MPU9250[JY901_N].CalcuEnd = NO;
+ 255   3          if( RX1_Buffer[0]!=0x55)//如果帧头不对，
+ 256   3          {
+ 257   4            COM1.RX_Cnt=0;//清除数组长度记录变量
+ 258   4            ucRxCnt=0;
+ 259   4          //PrintString1("DATA's head is not right\r\n");
+ 260   4      
+ 261   4            return ;//退出本次数据处理
+ 262   4          }
+ 263   3          //以下是当帧头正确时才执行的代码
+ 264   3            ucRxBuffer[COM1.RX_Cnt]=RX1_Buffer[COM1.RX_Cnt];//将串口1接收缓冲中的数据读出
+ 265   3      
+ 266   3          if(COM1.RX_Cnt<11)//如果还没有收到12个数据，也退出本次数据处理
+ 267   3          {
+ 268   4            //PrintString1("DATA IS not ready \r\n");
+ 269   4      
+ 270   4            return ;
+ 271   4          }
+ 272   3      //      if (ucRxBuffer[0]!=0x55) //数据头不对，则重新开始寻找0x55数据头
+ 273   3      //      {
+ 274   3      //        ucRxCnt         = 0;
+ 275   3      //        COM1.RX_Cnt     = 0;
+ 276   3      //        return;                                                                   
+ 277   3      //      }
+ 278   3      //      if (ucRxCnt<11) {return;}//数据不满11个，则返回
+ 279   3          
+ 280   3        //以下是当收到12个数据之后才执行的代码
+ 281   3      
+ 282   3            else//如果收到了12个数据了，则开始本次数据处理
+ 283   3            {
+ 284   4            //  PrintString1("DATA IS OK \r\n");
+ 285   4              switch(ucRxBuffer[1])
+ 286   4              {
+ 287   5                case 0x50: 
+ 288   5                      MPU9250[JY901_N].stcTime.ucYear       = ucRxBuffer[2];
+ 289   5                      MPU9250[JY901_N].stcTime.ucMonth      = ucRxBuffer[3];
+ 290   5                      MPU9250[JY901_N].stcTime.ucDay        = ucRxBuffer[4];
+ 291   5                      MPU9250[JY901_N].stcTime.ucHour       = ucRxBuffer[5];
+ 292   5                      MPU9250[JY901_N].stcTime.ucMinute     = ucRxBuffer[6];
+ 293   5                      MPU9250[JY901_N].stcTime.ucSecond     = ucRxBuffer[7];
+ 294   5                      MPU9250[JY901_N].stcTime.usMiliSecond = ((unsigned short)ucRxBuffer[9]<<8)|ucRxBuffer[8];
+ 295   5                                //  PrintString1("into time\r\n");
+ 296   5      
+ 297   5                      break;
+ 298   5                case 0x51:  
+ 299   5                      MPU9250[JY901_N].stcAcc.a[0] = ((unsigned short)ucRxBuffer[3]<<8)|ucRxBuffer[2];
+ 300   5                      MPU9250[JY901_N].stcAcc.a[1] = ((unsigned short)ucRxBuffer[5]<<8)|ucRxBuffer[4];
+ 301   5                      MPU9250[JY901_N].stcAcc.a[2] = ((unsigned short)ucRxBuffer[7]<<8)|ucRxBuffer[6];
+C51 COMPILER V8.05a   MPU9250_SBUF                                                         08/09/2017 16:25:14 PAGE 6   
+
+ 302   5                                          //  PrintString1("into acc\r\n");
+ 303   5      
+ 304   5      
+ 305   5                      break;
+ 306   5                case 0x52:  
+ 307   5                      MPU9250[JY901_N].stcGyro.w[0] = ((unsigned short)ucRxBuffer[3]<<8)|ucRxBuffer[2];
+ 308   5                      MPU9250[JY901_N].stcGyro.w[1] = ((unsigned short)ucRxBuffer[5]<<8)|ucRxBuffer[4];
+ 309   5                      MPU9250[JY901_N].stcGyro.w[2] = ((unsigned short)ucRxBuffer[7]<<8)|ucRxBuffer[6];
+ 310   5                                    //        PrintString1("into gyro\r\n");
+ 311   5      
+ 312   5                      break;
+ 313   5                case 0x53:  
+ 314   5                      MPU9250[JY901_N].stcAngle.Angle[0] = ((unsigned short)ucRxBuffer[3]<<8)|ucRxBuffer[2];
+ 315   5                      MPU9250[JY901_N].stcAngle.Angle[1] = ((unsigned short)ucRxBuffer[5]<<8)|ucRxBuffer[4];
+ 316   5                      MPU9250[JY901_N].stcAngle.Angle[2] = ((unsigned short)ucRxBuffer[7]<<8)|ucRxBuffer[6];
+ 317   5                      MPU9250[JY901_N].stcAngle.T        = ((unsigned short)ucRxBuffer[9]<<8)|ucRxBuffer[8];
+ 318   5                      //  PrintString1("into angle\r\n");
+ 319   5      //              sprintf(str,"x is %d\n",(unsigned short)MPU9250[0].stcAngle.Angle[X]);
+ 320   5      //        PrintString1(str);
+ 321   5      //              sprintf(str,"y is %d\n",(unsigned short)MPU9250[0].stcAngle.Angle[Y]);
+ 322   5      //        PrintString1(str);
+ 323   5      //              sprintf(str,"z is %d\n",(unsigned short)MPU9250[0].stcAngle.Angle[Z]);
+ 324   5      //        PrintString1(str);
+ 325   5      
+ 326   5                      break;
+ 327   5                case 0x54:  
+ 328   5                      MPU9250[JY901_N].stcMag.h[0] = ((unsigned short)ucRxBuffer[3]<<8)|ucRxBuffer[2];
+ 329   5                      MPU9250[JY901_N].stcMag.h[1] = ((unsigned short)ucRxBuffer[5]<<8)|ucRxBuffer[4];
+ 330   5                      MPU9250[JY901_N].stcMag.h[2] = ((unsigned short)ucRxBuffer[7]<<8)|ucRxBuffer[6];
+ 331   5                      MPU9250[JY901_N].stcMag.T    = ((unsigned short)ucRxBuffer[9]<<8)|ucRxBuffer[8];
+ 332   5                                          //  PrintString1("into mag\r\n");
+ 333   5      
+ 334   5                      break;
+ 335   5                case 0x55:  
+ 336   5                      MPU9250[JY901_N].stcDStatus.sDStatus[0] = ((unsigned short)ucRxBuffer[3]<<8)|ucRxBuffer[2];
+ 337   5                      MPU9250[JY901_N].stcDStatus.sDStatus[1] = ((unsigned short)ucRxBuffer[5]<<8)|ucRxBuffer[4];
+ 338   5                      MPU9250[JY901_N].stcDStatus.sDStatus[2] = ((unsigned short)ucRxBuffer[7]<<8)|ucRxBuffer[6];
+ 339   5                      MPU9250[JY901_N].stcDStatus.sDStatus[3] = ((unsigned short)ucRxBuffer[9]<<8)|ucRxBuffer[8];
+ 340   5                      break;
+ 341   5                case 0x56:  
+ 342   5                      ucRxBuffer[2] = 0x12;
+ 343   5                      ucRxBuffer[3] = 0x34;
+ 344   5                      ucRxBuffer[4] = 0x56;
+ 345   5                      ucRxBuffer[5] = 0x78;
+ 346   5                      CharToLong((char*)&MPU9250[JY901_N].stcPress.lPressure,(char*)&ucRxBuffer[2]);
+ 347   5                      CharToLong((char*)&MPU9250[JY901_N].stcPress.lAltitude,(char*)&ucRxBuffer[6]);
+ 348   5                      break;
+ 349   5                case 0x57:  
+ 350   5                      CharToLong((char*)&MPU9250[JY901_N].stcLonLat.lLon,(char*)&ucRxBuffer[2]);
+ 351   5                      CharToLong((char*)&MPU9250[JY901_N].stcLonLat.lLat,(char*)&ucRxBuffer[6]);
+ 352   5                      break;
+ 353   5                case 0x58:  
+ 354   5                      MPU9250[JY901_N].stcGPSV.sGPSHeight = ((unsigned short)ucRxBuffer[3]<<8)|ucRxBuffer[2];
+ 355   5                      MPU9250[JY901_N].stcGPSV.sGPSYaw    = ((unsigned short)ucRxBuffer[5]<<8)|ucRxBuffer[4];
+ 356   5                      CharToLong((char*)&MPU9250[JY901_N].stcGPSV.lGPSVelocity,(char*)&ucRxBuffer[6]);
+ 357   5                      break;
+ 358   5              }
+ 359   4            }
+ 360   3            ucRxCnt     = 0;
+ 361   3            COM1.RX_Cnt = 0;
+ 362   3            MPU9250[JY901_N].CalcuEnd = YES;
+ 363   3                  //  sprintf(str_0,"x is %f\r\n",getJY901Angle(JY901_1,X));
+C51 COMPILER V8.05a   MPU9250_SBUF                                                         08/09/2017 16:25:14 PAGE 7   
+
+ 364   3                  //  PrintString1(str_0);
+ 365   3      //              sprintf(str_1,"y is %f\r\n",getJY901Angle(JY901_1,Y));
+ 366   3      //        PrintString1(str_1);
+ 367   3      //              sprintf(str_2,"z is %f\r\n",getJY901Angle(JY901_1,Z));
+ 368   3      //        PrintString1(str_2);
+ 369   3      
+ 370   3          }
+ 371   2        }
+ 372   1      }
+
+
+MODULE INFORMATION:   STATIC OVERLAYABLE
+   CODE SIZE        =   1706    ----
+   CONSTANT SIZE    =   ----    ----
+   XDATA SIZE       =    163      52
+   PDATA SIZE       =   ----    ----
+   DATA SIZE        =   ----    ----
+   IDATA SIZE       =   ----    ----
+   BIT SIZE         =   ----    ----
+END OF MODULE INFORMATION.
+
+
+C51 COMPILATION COMPLETE.  0 WARNING(S),  0 ERROR(S)

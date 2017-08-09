@@ -1,0 +1,191 @@
+C51 COMPILER V8.05a   ADS1115                                                              08/09/2017 16:25:15 PAGE 1   
+
+
+C51 COMPILER V8.05a, COMPILATION OF MODULE ADS1115
+OBJECT MODULE PLACED IN .\ADS1115.obj
+COMPILER INVOKED BY: C:\Keil_v5\C51\BIN\C51.EXE ..\HARDWARE\COMMON_HARDWARE\ADS1115\ADS1115.C LARGE WARNINGLEVEL(0) BROW
+                    -SE DEBUG OBJECTEXTEND PRINT(.\ADS1115.lst) TABS(2) OBJECT(.\ADS1115.obj)
+
+line level    source
+
+   1          /************************************************************
+   2          * 组织名称：
+   3          * 文件名称: K:\单片机相关\电子大赛程序框架\HARDWARE\COMMON_HARDWARE\ADS1115\ADS1115.C
+   4          * 作者:
+   5          * 版本:
+   6          * 日期:     2017/08/03
+   7          * 描述:  打开相应的通道后使用get函数获取相应通道的值
+   8          * 历史修改记录:
+   9          * <作者> <时间> <版本 > <描述>
+  10          *
+  11          ***********************************************************/
+  12          
+  13          #include "ADS1115.H"
+  14          #include "../BSP/GPIO/GPIO.h"
+  15          #include "../BSP/delay/delay.h"
+  16          #include <stdio.h>
+  17          #define ADS1115_ADDR 1001000//器件地址，addr接地
+  18          #define CONFIG_REGISTER 00000001//配置寄存器的地址
+  19          #define CONVERSION_REGISTER 00000000//转换结果寄存器地址
+  20          
+  21          typedef struct
+  22          {
+  23            u16 value;
+  24            u8 speed;
+  25            u8 state;
+  26          }ADS1115;
+  27          static ADS1115 ADCchannel[4];
+  28          
+  29          //************************************
+  30          // Method:    writeConfigRegister
+  31          // FullName:  writeConfigRegister
+  32          // Access:    public static 
+  33          // Returns:   void
+  34          // Qualifier:
+  35          //************************************
+  36          static void writeConfigRegister(u8 channel)
+  37          {
+  38   1        IIC_Start();
+  39   1        InputOneByte(0x90);//器件地址，写模式
+  40   1        IIC_RdAck();            // 读应答信号
+  41   1      
+  42   1        InputOneByte(0x01);//指向配置寄存器
+  43   1        IIC_RdAck();            // 读应答信号
+  44   1      
+  45   1        switch (channel)
+  46   1        {
+  47   2        case CHANNEL_1:
+  48   2        {
+  49   3          InputOneByte(0xc2);//配置模式
+  50   3        };
+  51   2        break;
+  52   2        case CHANNEL_2:
+  53   2        {
+  54   3          InputOneByte(0xD2);//配置模式
+C51 COMPILER V8.05a   ADS1115                                                              08/09/2017 16:25:15 PAGE 2   
+
+  55   3        };
+  56   2        break;
+  57   2        case CHANNEL_3:
+  58   2        {
+  59   3          InputOneByte(0xE2);//配置模式
+  60   3        };
+  61   2        break;
+  62   2        case CHANNEL_4:
+  63   2        {
+  64   3          InputOneByte(0xF2);//配置模式
+  65   3        };
+  66   2        break;
+  67   2      
+  68   2        }
+  69   1        IIC_RdAck();            // 读应答信号
+  70   1      
+  71   1        InputOneByte(0xe3);//配置模式
+  72   1        IIC_RdAck();            // 读应答信号
+  73   1      
+  74   1        IIC_Stop();
+  75   1      
+  76   1      }
+  77          //************************************
+  78          // Method:    changeRegister
+  79          // FullName:  changeRegister
+  80          // Access:    public static 
+  81          // Returns:   void
+  82          // Qualifier:
+  83          //************************************
+  84          static void changeRegister(void)
+  85          {
+  86   1        IIC_Start();
+  87   1        InputOneByte(0x90);
+  88   1        IIC_RdAck();            // 读应答信号
+  89   1      
+  90   1        InputOneByte(0x00);   //指向转换结果寄存器
+  91   1        IIC_RdAck();            // 读应答信号
+  92   1      
+  93   1        IIC_Stop();
+  94   1      }
+  95          //************************************
+  96          // Method:    readConversionRegister
+  97          // FullName:  readConversionRegister
+  98          // Access:    public static 
+  99          // Returns:   u16
+ 100          // Qualifier:
+ 101          //************************************
+ 102          static u16 readConversionRegister(void)
+ 103          {
+ 104   1        u8 str[10];
+ 105   1        u16 result;
+ 106   1        u8 resultH = 0, resultL = 0;
+ 107   1        IIC_Start();
+ 108   1        InputOneByte(0x91);
+ 109   1        IIC_RdAck();            // 读应答信号
+ 110   1        resultH = OutputOneByte();
+ 111   1        IIC_Ack();
+ 112   1        resultL = OutputOneByte();
+ 113   1        IIC_Stop();
+ 114   1        result = (((u16)resultH) << 8) | resultL;
+ 115   1        return result;
+ 116   1      }
+C51 COMPILER V8.05a   ADS1115                                                              08/09/2017 16:25:15 PAGE 3   
+
+ 117          
+ 118          
+ 119          //************************************
+ 120          // Method:    ADS1115_Config
+ 121          // FullName:  ADS1115_Config
+ 122          // Access:    public 
+ 123          // Returns:   void
+ 124          // Qualifier: 器件初始化
+ 125          // Parameter: u8 speed
+ 126          // Parameter: u8 mode
+ 127          //************************************
+ 128          void ADS1115_Config(u8 speed, u8 mode)
+ 129          {
+ 130   1        GPIO_InitTypeDef IIC_GPIO_Init;
+ 131   1        IIC_GPIO_Init.Mode = GPIO_PullUp;
+ 132   1        IIC_GPIO_Init.Pin = GPIO_Pin_4 | GPIO_Pin_5;
+ 133   1        GPIO_Inilize(GPIO_P3, &IIC_GPIO_Init);
+ 134   1      
+ 135   1      }
+ 136          //************************************
+ 137          // Method:    getADS1115ConvsionData
+ 138          // FullName:  getADS1115ConvsionData
+ 139          // Access:    public 
+ 140          // Returns:   u16
+ 141          // Qualifier: 读取值
+ 142          // Parameter: u8 channl
+ 143          //************************************
+ 144          u16 getADS1115ConvsionData(u8 channel)
+ 145          {
+ 146   1        u16 Data;
+ 147   1      
+ 148   1        if (!ADCchannel[channel].state)
+ 149   1        {
+ 150   2          return 0;
+ 151   2        }
+ 152   1        writeConfigRegister(channel);
+ 153   1        changeRegister();
+ 154   1        return  readConversionRegister();
+ 155   1      }
+ 156          void open_ADS1115(u8 channel)
+ 157          {
+ 158   1        ADCchannel[channel].state = ON;
+ 159   1      }
+ 160          void close_ADS1115(u8 channel)
+ 161          {
+ 162   1        ADCchannel[channel].state = OFF;
+ 163   1      }
+
+
+MODULE INFORMATION:   STATIC OVERLAYABLE
+   CODE SIZE        =    236    ----
+   CONSTANT SIZE    =   ----    ----
+   XDATA SIZE       =     16      19
+   PDATA SIZE       =   ----    ----
+   DATA SIZE        =   ----    ----
+   IDATA SIZE       =   ----    ----
+   BIT SIZE         =   ----    ----
+END OF MODULE INFORMATION.
+
+
+C51 COMPILATION COMPLETE.  0 WARNING(S),  0 ERROR(S)

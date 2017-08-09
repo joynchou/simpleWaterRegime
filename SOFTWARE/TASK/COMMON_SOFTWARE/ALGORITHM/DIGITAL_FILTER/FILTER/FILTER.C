@@ -11,10 +11,10 @@
 //缺点：
 //测量速度较慢，和算法平均滤波一样，浪费RAM。
 
-float filter(float *ary, u8 num, float MaxValue, float MinValue)
+float filter(float *ary, u16 num, float MaxValue, float MinValue)
 {
-	u8 angleDataloopTemp2; //取平均的个数
-	float finalData = 0;
+	u16 angleDataloopTemp2; //取平均的个数
+	double finalData = 0;
 	float maxValue = MinValue;
 	float minValue = MaxValue;
 	for (angleDataloopTemp2 = 0; angleDataloopTemp2 < num; angleDataloopTemp2++) //找出最大值和最小值
@@ -31,7 +31,7 @@ float filter(float *ary, u8 num, float MaxValue, float MinValue)
 	}
 	finalData -= (maxValue + minValue);  //去掉最大值最小值
 	finalData /= (num - 2);	 //取平均值
-	return finalData;
+	return fabs((float)finalData);
 }
 //卡尔曼滤波算法
 double KalmanFilter(const double ResrcData, double ProcessNiose_Q, double MeasureNoise_R, double InitialPrediction)
@@ -85,13 +85,13 @@ float limitingFilter(float value, float A)
 	static float   lastValue =0;
 	if (fabs(value - lastValue) > A)//本次值无效
 	{
-		return lastValue;
+		return (float)lastValue;
 	}
 	else//本次值有效
 	{
 
 		lastValue = value;
-		return value;
+		return fabs((float)value);
 
 	}
 }
@@ -114,16 +114,16 @@ float limitingFilter(float value, float A)
 //************************************
 float movingAverageFilter(float value)
 {
-#define FILTER_N 180
-	static float filter_buf[FILTER_N + 1];
-	u8 i;
-	float filter_sum = 0;
+#define FILTER_N 10
+	static double filter_buf[FILTER_N + 1];
+	u16 i;
+	double filter_sum = 0;
 	filter_buf[FILTER_N] = value;
 	for (i = 0; i < FILTER_N; i++) {
 		filter_buf[i] = filter_buf[i + 1]; // 所有数据左移，低位仍掉
 		filter_sum += filter_buf[i];
 	}
-	return (float)(filter_sum / FILTER_N);
+	return (float)(fabs(filter_sum / FILTER_N));
 }
 
 
@@ -150,12 +150,12 @@ D、缺点：
  // Parameter: float value：传进来的数值，如果不是float请强制转换成float
  // Parameter: u8 filter_n：计数器的上限值，值越大滤波的结果越稳定，越小越不稳定，但是值太大数据会失真
  //************************************
-float shudderingFilter(float value, u8 filter_n)
+float shudderingFilter(float value, u16 filter_n)
 {
 
 	static u16 i = 0;//计数器
 	static float lastValue=0;//上一次的结果
-	int newValue;//这一次的新的结果;
+	float newValue;//这一次的新的结果;
 	newValue = value;//传值
 	if (!(fabs(newValue - lastValue) < 0.0001f))//如果上一次的结果不等于这一次的结果
 	{
@@ -164,11 +164,15 @@ float shudderingFilter(float value, u8 filter_n)
 			i = 0;
 			lastValue = newValue;
 		}
+		else
+		{
+			return  lastValue;
+		}
 	}
 	else//如果上一次的结果等于这一次的结果
 	{
 		i = 0;
 	}
-	return lastValue;
+	return  lastValue;
 
 }

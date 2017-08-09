@@ -1,0 +1,219 @@
+C51 COMPILER V8.05a   HC_SR04                                                              08/09/2017 16:33:14 PAGE 1   
+
+
+C51 COMPILER V8.05a, COMPILATION OF MODULE HC_SR04
+OBJECT MODULE PLACED IN .\hc_sr04.obj
+COMPILER INVOKED BY: C:\Keil_v5\C51\BIN\C51.EXE ..\HARDWARE\COMMON_HARDWARE\hc_sr04\hc_sr04.c LARGE WARNINGLEVEL(0) BROW
+                    -SE DEBUG OBJECTEXTEND PRINT(.\hc_sr04.lst) TABS(2) OBJECT(.\hc_sr04.obj)
+
+line level    source
+
+   1          /************************************************************
+   2          * 组织名称：
+   3          * 文件名称: HARDWARE\COMMON_HARDWARE\HC_SR04\HC_SR04.C
+   4          * 作者:
+   5          * 版本:
+   6          * 日期:     2017/08/05
+   7          * 描述:
+   8          * 历史修改记录:
+   9          * <作者> <时间> <版本 > <描述>
+  10          *
+  11          ***********************************************************/
+  12          #define ext0Disable() EX0 = 0
+  13          #define ext0Able() EX0 = 1
+  14          
+  15          //#define DEBUG
+  16          #include "hc_sr04.h"
+  17          #include <stdio.h>
+  18          #include "../SOFTWARE/TASK/COMMON_SOFTWARE/ALGORITHM/DIGITAL_FILTER/FILTER/FILTER.H"
+  19          #include "../ADS1115/ADS1115.H"
+  20          typedef struct
+  21          {
+  22            double distance;
+  23            u8 state;
+  24            u16 timerValue;
+  25          
+  26          }HC_SR04;
+  27          static HC_SR04 ultrasonic[2];
+  28          static u8 extiBit = 0;
+  29          u8 str[20];
+  30          void ultrasonicInit(void)
+  31          {
+  32   1        GPIO_InitTypeDef ultrasonic_GPIO;
+  33   1        EXTI_InitTypeDef  hc_sr04_EXTI;
+  34   1        ultrasonic_GPIO.Mode = GPIO_PullUp;
+  35   1        ultrasonic_GPIO.Pin = GPIO_Pin_3;
+  36   1        GPIO_Inilize(GPIO_P3, &ultrasonic_GPIO);
+  37   1        ultrasonic_GPIO.Mode = GPIO_HighZ; //外部中断要使用这个模式
+  38   1        ultrasonic_GPIO.Pin = GPIO_Pin_2;
+  39   1        GPIO_Inilize(GPIO_P3, &ultrasonic_GPIO);
+  40   1        hc_sr04_EXTI.EXTI_Interrupt = ENABLE;
+  41   1        hc_sr04_EXTI.EXTI_Mode = EXT_MODE_RiseFall;
+  42   1        hc_sr04_EXTI.EXTI_Polity = PolityHigh;
+  43   1        Ext_Inilize(EXT_INT0, &hc_sr04_EXTI);
+  44   1        P32 = 0;//引脚初始化
+  45   1        P33 = 0;//引脚初始化
+  46   1      
+  47   1      }
+  48          
+  49          
+  50          
+  51          //************************************
+  52          // Method:    open_HC_SR04
+  53          // FullName:  open_HC_SR04
+  54          // Access:    public 
+C51 COMPILER V8.05a   HC_SR04                                                              08/09/2017 16:33:14 PAGE 2   
+
+  55          // Returns:   void
+  56          // Qualifier: 打开此模块的开关
+  57          // Parameter: u8 num
+  58          //************************************
+  59          void open_Ultrasonic(u8 num)
+  60          {
+  61   1      
+  62   1        ultrasonic[num].state = ON;
+  63   1      
+  64   1      
+  65   1      }
+  66          void close_Ultrasonic(u8 num)
+  67          {
+  68   1        ultrasonic[num].state = OFF;
+  69   1      }
+  70          u8 getUltrasonicState(u8 num)
+  71          {
+  72   1        return ultrasonic[num].state;
+  73   1      
+  74   1      }
+  75          void setTimerValue(u8 num, u16 value)
+  76          {
+  77   1        ultrasonic[num].timerValue = value;
+  78   1      }
+  79          void setDistance(u8 num,float value)
+  80          {
+  81   1        ultrasonic[num].distance = value;
+  82   1      }
+  83          //************************************
+  84          // Method:    getTimerValue
+  85          // FullName:  getTimerValue
+  86          // Access:    public 
+  87          // Returns:   u16
+  88          // Qualifier: 获得最原始的高电平时间，单位ms
+  89          // Parameter: u8 num
+  90          //************************************
+  91          u16 getTimerValue(u8 num)
+  92          {
+  93   1        return ultrasonic[num].timerValue;
+  94   1      
+  95   1      }
+  96          //************************************
+  97          // Method:    updateDistance
+  98          // FullName:  updateDistance
+  99          // Access:    public 
+ 100          // Returns:   void
+ 101          // Qualifier: 放入进程中更新距离
+ 102          // Parameter: u8 num
+ 103          //************************************
+ 104          void updateDistance(u8 num)
+ 105          {
+ 106   1        static double time;//相应时长，单位ms
+ 107   1        if (!ultrasonic[num].state)
+ 108   1        {
+ 109   2          return ;
+ 110   2        }
+ 111   1        if (num==HC_SR04_1)
+ 112   1        {
+ 113   2          ext0Able();
+ 114   2      
+ 115   2          Trig = HIGH;//发出脉冲信号
+ 116   2          delay_us(5);//此函数不太准，3us实际大概
+C51 COMPILER V8.05a   HC_SR04                                                              08/09/2017 16:33:14 PAGE 3   
+
+ 117   2          Trig = LOW;
+ 118   2        }
+ 119   1        else if (num == US_016_1)
+ 120   1        {
+ 121   2          ultrasonic[US_016_1].timerValue = getADS1115ConvsionData(CHANNEL_1);
+ 122   2          delay_us(5);//此函数不太准，3us实际大概
+ 123   2        }
+ 124   1        else
+ 125   1        {
+ 126   2      
+ 127   2        }
+ 128   1       }
+ 129          //************************************
+ 130          // Method:    getdistance
+ 131          // FullName:  getdistance
+ 132          // Access:    public 
+ 133          // Returns:   float
+ 134          // Qualifier: //获取传感器距离,单位cm,原始数据，
+ 135          // Parameter: u8 num
+ 136          //************************************
+ 137          double getdistance(u8 num)//获取传感器距离
+ 138          {
+ 139   1      
+ 140   1       
+ 141   1        return ultrasonic[num].distance;//如果没有更新数据则返回上一次更新的值，否则返回最近值
+ 142   1      }
+ 143          /********************* INT0中断函数 *************************/
+ 144          static void Ext_INT0(void) interrupt INT0_VECTOR    //进中断时已经清除标志
+ 145          {
+ 146   1      
+ 147   1        //u8 timerValueL, timerValueH;
+ 148   1      #ifdef DEBUG
+                  //PrintString1("into\r\n");
+              #endif
+ 151   1        //delay_us(1);
+ 152   1        if (INT0 == RISING_EDGE)//上升沿
+ 153   1        {
+ 154   2          Timer4_Run();//开始计时
+ 155   2          extiBit = LOW;
+ 156   2      #ifdef DEBUG
+                  PrintString1("rising edge\r\n");
+              #endif
+ 159   2      
+ 160   2        }
+ 161   1        else if (INT0 == FALLING_EDGE)//下降沿
+ 162   1        {
+ 163   2      
+ 164   2          Timer4_Stop();
+ 165   2          ultrasonic[0].timerValue = TH4;
+ 166   2          ultrasonic[0].timerValue = ultrasonic[0].timerValue * 256 + TL4;
+ 167   2      #ifdef DEBUG
+                  USART1_printf("valueL is %d\r\n", (u16)TL4);
+                  USART1_printf("valueH is %d\r\n", (u16)TH4);
+                  sprintf(str, "value is %u\r\n", TH4 * 256 + TL4);
+                  PrintString1(str);
+              #endif      
+ 173   2          TH4 = 0;
+ 174   2          TL4 = 0;
+ 175   2          extiBit = OK;//数据已准备好
+ 176   2      
+ 177   2        }
+ 178   1        else
+C51 COMPILER V8.05a   HC_SR04                                                              08/09/2017 16:33:14 PAGE 4   
+
+ 179   1        {
+ 180   2          extiBit = LOW;
+ 181   2          Timer4_Stop();
+ 182   2      
+ 183   2      #ifdef DEBUG
+                  PrintString1("error\r\n");
+              #endif
+ 186   2        }
+ 187   1        //  ext0Disable();
+ 188   1      
+ 189   1      }
+
+
+MODULE INFORMATION:   STATIC OVERLAYABLE
+   CODE SIZE        =    394    ----
+   CONSTANT SIZE    =   ----    ----
+   XDATA SIZE       =     39      11
+   PDATA SIZE       =   ----    ----
+   DATA SIZE        =   ----    ----
+   IDATA SIZE       =   ----    ----
+   BIT SIZE         =   ----    ----
+END OF MODULE INFORMATION.
+
+
+C51 COMPILATION COMPLETE.  0 WARNING(S),  0 ERROR(S)

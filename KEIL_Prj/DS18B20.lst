@@ -1,0 +1,205 @@
+C51 COMPILER V8.05a   DS18B20                                                              08/09/2017 16:25:15 PAGE 1   
+
+
+C51 COMPILER V8.05a, COMPILATION OF MODULE DS18B20
+OBJECT MODULE PLACED IN .\DS18B20.obj
+COMPILER INVOKED BY: C:\Keil_v5\C51\BIN\C51.EXE ..\HARDWARE\COMMON_HARDWARE\DS18B20\DS18B20.C LARGE WARNINGLEVEL(0) BROW
+                    -SE DEBUG OBJECTEXTEND PRINT(.\DS18B20.lst) TABS(2) OBJECT(.\DS18B20.obj)
+
+line level    source
+
+   1          
+   2          #include <stdio.h>
+   3          #include "DS18B20.H"
+   4          
+   5          sbit DQ = P0 ^ 1;
+   6          typedef struct
+   7          {
+   8            u8 tempL;//温度低八位
+   9            u8 tempH;//温度高八位
+  10            float Tempera;//温度
+  11            u8 StartState;//运行状态状态
+  12            u8 InitState;//初始化状态
+  13            u16 Integer;//整数部分
+  14            u16 Decimal;//小数部分
+  15          }DS18B20;
+  16          
+  17          static void Delay260us()    //@24.000MHz
+  18          {
+  19   1        unsigned char i, j;
+  20   1      
+  21   1        i = 7;
+  22   1        j = 14;
+  23   1        do
+  24   1        {
+  25   2          while (--j);
+  26   2        } while (--i);
+  27   1      }
+  28          
+  29          static void Delay60us()   //@24.000MHz
+  30          {
+  31   1        unsigned char i, j;
+  32   1      
+  33   1        i = 2;
+  34   1        j = 99;
+  35   1        do
+  36   1        {
+  37   2          while (--j);
+  38   2        } while (--i);
+  39   1      }
+  40          
+  41          
+  42          static void Delay750us()    //@24.000MHz
+  43          {
+  44   1        unsigned char i, j;
+  45   1      
+  46   1        i = 18;
+  47   1        j = 127;
+  48   1        do
+  49   1        {
+  50   2          while (--j);
+  51   2        } while (--i);
+  52   1      }
+  53          static void Delay10us()   //@24.000MHz
+  54          {
+C51 COMPILER V8.05a   DS18B20                                                              08/09/2017 16:25:15 PAGE 2   
+
+  55   1        unsigned char i;
+  56   1      
+  57   1        _nop_();
+  58   1        _nop_();
+  59   1        i = 57;
+  60   1        while (--i);
+  61   1      }
+  62          
+  63          static void Delay1us()    //@24.000MHz
+  64          {
+  65   1        unsigned char i;
+  66   1      
+  67   1        _nop_();
+  68   1        _nop_();
+  69   1        i = 3;
+  70   1        while (--i);
+  71   1      }
+  72          
+  73          static void Delay100us()    //@24.000MHz
+  74          {
+  75   1        unsigned char i, j;
+  76   1      
+  77   1        i = 3;
+  78   1        j = 82;
+  79   1        do
+  80   1        {
+  81   2          while (--j);
+  82   2        } while (--i);
+  83   1      }
+  84          
+  85          //读一个字节
+  86          static u8 ReadOneChar(void)       //主机数据线先从高拉至低电平1us以上，再使数据线升为高电平，从而产生读信号
+  87          {
+  88   1        u8 Value = 0x00;
+  89   1        u16 i;
+  90   1      
+  91   1        DQ = 1;
+  92   1        Delay10us();
+  93   1        for (i = 0; i < 8; i++)
+  94   1        {
+  95   2          Value >>= 1;
+  96   2          DQ = 0;// 给脉冲信号
+  97   2          Delay1us();
+  98   2          DQ = 1;// 给脉冲信号
+  99   2          Delay1us();
+ 100   2          if (DQ == 1) Value |= 0x80;
+ 101   2          Delay60us();
+ 102   2        }
+ 103   1        return Value;
+ 104   1      }
+ 105          
+ 106          static void WriteOneChar(unsigned char dat)
+ 107          {
+ 108   1        u16 i;
+ 109   1      
+ 110   1        for (i = 0; i < 8; i++)
+ 111   1        {
+ 112   2          if ((dat & 0x01))
+ 113   2          {
+ 114   3            DQ = 0;
+ 115   3            Delay1us();
+ 116   3            DQ = 1;
+C51 COMPILER V8.05a   DS18B20                                                              08/09/2017 16:25:15 PAGE 3   
+
+ 117   3            Delay60us();
+ 118   3          }
+ 119   2          else
+ 120   2          {
+ 121   3            DQ = 0;
+ 122   3            Delay60us();
+ 123   3            DQ = 1;
+ 124   3            Delay1us();
+ 125   3          }
+ 126   2          dat >>= 1;
+ 127   2        }
+ 128   1      }
+ 129          static void Init_DS18B20(void)
+ 130          {
+ 131   1        u8 Status = 0x00;
+ 132   1        u16 CONT_1 = 0;
+ 133   1        u8 Flag_1 = 1;
+ 134   1      
+ 135   1        DQ = 1;      //DQ复位
+ 136   1        Delay260us();  //稍做延时
+ 137   1        DQ = 0;      //单片机将DQ拉低
+ 138   1        Delay750us();  //精确延时 大于 480us 小于960us
+ 139   1        DQ = 1;      //拉高总线
+ 140   1        while ((DQ != 0) && (Flag_1 == 1)) //等待ds18b20响应，具有防止超时功能
+ 141   1        {                                      //等待约60ms左右
+ 142   2          CONT_1++;
+ 143   2          Delay10us();
+ 144   2          if (CONT_1 > 16000)Flag_1 = 0;
+ 145   2          Status = DQ;
+ 146   2        }
+ 147   1        DQ = 1;
+ 148   1        Delay100us();
+ 149   1      
+ 150   1        //return Status;       //返回初始化状态
+ 151   1      }
+ 152          float getDS18B20_Temperature(u8 which)
+ 153          {
+ 154   1        u8 str[30];
+ 155   1        u16 tempL, tempH, temp;
+ 156   1        Init_DS18B20();           //初始化
+ 157   1        WriteOneChar(0xcc);         //跳过读序列号的操作
+ 158   1        WriteOneChar(0x44);         //启动温度转换
+ 159   1      
+ 160   1        Init_DS18B20();           //初始化
+ 161   1        WriteOneChar(0xcc);         //跳过读序列号的操作 
+ 162   1        WriteOneChar(0xbe);         //读温度寄存器（头两个值分别为温度的低位和高位）
+ 163   1        tempL = ReadOneChar();        //读出温度的低位LSB
+ 164   1        tempH = ReadOneChar();        //读出温度的高位MSB 
+ 165   1        temp = (tempH << 8) | tempL;
+ 166   1        return temp*0.0625f;
+ 167   1      }
+ 168          void DS18B20_Init(void)
+ 169          {
+ 170   1        GPIO_InitTypeDef DS18B20_GPIO;
+ 171   1        DS18B20_GPIO.Mode = GPIO_PullUp;
+ 172   1        DS18B20_GPIO.Pin = GPIO_Pin_0;
+ 173   1        GPIO_Inilize(GPIO_P0, &DS18B20_GPIO);
+ 174   1      
+ 175   1      }
+
+
+MODULE INFORMATION:   STATIC OVERLAYABLE
+C51 COMPILER V8.05a   DS18B20                                                              08/09/2017 16:25:15 PAGE 4   
+
+   CODE SIZE        =    291    ----
+   CONSTANT SIZE    =   ----    ----
+   XDATA SIZE       =   ----      35
+   PDATA SIZE       =   ----    ----
+   DATA SIZE        =   ----    ----
+   IDATA SIZE       =   ----    ----
+   BIT SIZE         =   ----    ----
+END OF MODULE INFORMATION.
+
+
+C51 COMPILATION COMPLETE.  0 WARNING(S),  0 ERROR(S)

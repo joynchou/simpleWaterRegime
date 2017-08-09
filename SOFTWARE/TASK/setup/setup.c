@@ -45,27 +45,28 @@ void setup(void)
 
 	UART1_init(9600);
 	timerInit();
-	Board_LED_Init();
-	LCD5510_Init();
-	Button_config();
-	Speaker_Init();
+//	Board_LED_Init();
+//	LCD5510_Init();
+	//Button_config();
+	//Speaker_Init();
 	ADS1115_Config();
 	ultrasonicInit();
 	DS18B20_Init();
-	LCD_printsl(0, 0, "Hello!");
-	os_wait(K_TMO, 250, 0);
-	os_wait(K_TMO, 250, 0);
-	os_wait(K_TMO, 250, 0);
-	os_wait(K_TMO, 250, 0);
-	LCD_clr_scr();
+	setPHCoefficient(PH_1,-1412.3f,18100.0f);
+	//LCD_printsl(0, 0, "Hello!");
+//	os_wait(K_TMO, 250, 0);
+//	os_wait(K_TMO, 250, 0);
+//	os_wait(K_TMO, 250, 0);
+//	os_wait(K_TMO, 250, 0);
+	//LCD_clr_scr();
 	//InitJY901(JY901_1);
 	//EnableJY901(JY901_1);
 	//openJY901SbufMode(JY901_1);
 	//ADC_config(ADC_P10, ADC_540T);
 	open_Ultrasonic(HC_SR04_1);
-	open_Ultrasonic(US_016_1);
+//	open_Ultrasonic(US_016_1);
 	open_ADS1115(CHANNEL_1);
-	open_ADS1115(CHANNEL_2);
+//	open_ADS1115(CHANNEL_2);
  	// test();
 
 }

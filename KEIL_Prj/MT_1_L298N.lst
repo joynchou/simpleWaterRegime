@@ -1,0 +1,109 @@
+C51 COMPILER V8.05a   MT_1_L298N                                                           08/09/2017 16:25:14 PAGE 1   
+
+
+C51 COMPILER V8.05a, COMPILATION OF MODULE MT_1_L298N
+OBJECT MODULE PLACED IN .\MT_1_L298N.obj
+COMPILER INVOKED BY: C:\Keil_v5\C51\BIN\C51.EXE ..\HARDWARE\COMMON_HARDWARE\L298N\MT_1_L298N.c LARGE WARNINGLEVEL(0) BRO
+                    -WSE DEBUG OBJECTEXTEND PRINT(.\MT_1_L298N.lst) TABS(2) OBJECT(.\MT_1_L298N.obj)
+
+line level    source
+
+   1          /**********************************
+   2          * 文件名称：L298N模块控制
+   3          * 作者：夏志强
+   4          * 版本：1.0
+   5          * 日期：2017/07/08
+   6          * 描述：
+   7          * 1.0：编写了舵机的主要控制函数，包括：舵机开关控制、舵机角度读取与设定
+   8          * 详情见MT_1_L298N.H中的注释
+   9          ************************************/
+  10          
+  11          #include "MT_1_L298N.H"//头文件
+  12          
+  13          void setCarForward(void)//前进
+  14          {
+  15   1        IN1=1;
+  16   1        IN2=0;
+  17   1        IN3=0;
+  18   1        IN4=1;
+  19   1      } 
+  20          
+  21          void setCarBack(void)//后退
+  22          {
+  23   1        IN1=0;
+  24   1        IN2=1;
+  25   1        IN3=1;
+  26   1        IN4=0;
+  27   1      } 
+  28          
+  29          void setCarStop(void)//停止
+  30          {
+  31   1        IN1=0;
+  32   1        IN2=0,
+  33   1        IN3=0,
+  34   1        IN4=0;
+  35   1      }
+  36          
+  37          void setCarRightForward(void)//前进右转弯
+  38          {
+  39   1        IN1=1;
+  40   1        IN2=0;
+  41   1        IN3=0;
+  42   1        IN4=0;
+  43   1      }
+  44          
+  45          void setCarRightBack(void)//后退右转弯
+  46          {
+  47   1        IN1=0;
+  48   1        IN2=1;
+  49   1        IN3=0;
+  50   1        IN4=0;
+  51   1      }   
+  52          
+  53          void setCarRightTurn(void)//原地右旋转
+  54          {
+C51 COMPILER V8.05a   MT_1_L298N                                                           08/09/2017 16:25:14 PAGE 2   
+
+  55   1        IN1=1;
+  56   1        IN2=0;
+  57   1        IN3=1;
+  58   1        IN4=0;  
+  59   1      }
+  60          
+  61          void setCarLeftForward(void)//前进左转弯
+  62          {
+  63   1        IN1=0;
+  64   1        IN2=0;
+  65   1        IN3=0;
+  66   1        IN4=1;
+  67   1      }
+  68          
+  69          void setCarLeftBack(void)//后退左转弯
+  70          {
+  71   1        IN1=0;
+  72   1        IN2=0;
+  73   1        IN3=1;
+  74   1        IN4=0;
+  75   1      } 
+  76          
+  77          void setCarLeftTurn(void)//原地左旋转
+  78          {
+  79   1        IN1=0;
+  80   1        IN2=1;
+  81   1        IN3=0;
+  82   1        IN4=1;
+  83   1      }
+
+
+MODULE INFORMATION:   STATIC OVERLAYABLE
+   CODE SIZE        =     81    ----
+   CONSTANT SIZE    =   ----    ----
+   XDATA SIZE       =   ----    ----
+   PDATA SIZE       =   ----    ----
+   DATA SIZE        =   ----    ----
+   IDATA SIZE       =   ----    ----
+   BIT SIZE         =   ----    ----
+END OF MODULE INFORMATION.
+
+
+C51 COMPILATION COMPLETE.  0 WARNING(S),  0 ERROR(S)

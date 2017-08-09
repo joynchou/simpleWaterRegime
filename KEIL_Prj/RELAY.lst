@@ -1,0 +1,110 @@
+C51 COMPILER V8.05a   RELAY                                                                08/09/2017 16:25:14 PAGE 1   
+
+
+C51 COMPILER V8.05a, COMPILATION OF MODULE RELAY
+OBJECT MODULE PLACED IN .\RELAY.obj
+COMPILER INVOKED BY: C:\Keil_v5\C51\BIN\C51.EXE ..\HARDWARE\COMMON_HARDWARE\RELAY\RELAY.C LARGE WARNINGLEVEL(0) BROWSE D
+                    -EBUG OBJECTEXTEND PRINT(.\RELAY.lst) TABS(2) OBJECT(.\RELAY.obj)
+
+line level    source
+
+   1          #include "RELAY.H"
+   2          
+   3          sbit IN1=P2^7;
+   4          sbit IN2=P2^6;
+   5          sbit IN3=P2^5;
+   6          sbit IN4=P2^4;
+   7          
+   8          enum STATE
+   9          {
+  10            OPEN,CLOSE
+  11          };
+  12          
+  13          typedef struct
+  14          {
+  15            u8 state;//继电器开关，open为开，close为关
+  16          }Relay;
+  17          
+  18          typedef struct//继电器模块结构体
+  19          {
+  20            u8 able;//继电器模块使能
+  21            Relay RelaySwitch[RELAY_NUM];//单个模块中继电器个数
+  22          }RelayModular;
+  23          static RelayModular s_RelayModular[RELAY_MODULAR_NUM];
+  24          
+  25          void Relay_Init(void)
+  26          {
+  27   1        GPIO_InitTypeDef    GPIO_InitStructure;     //结构定义
+  28   1        GPIO_InitStructure.Mode = GPIO_PullUp;  
+  29   1        GPIO_InitStructure.Pin = GPIO_Pin_7|GPIO_Pin_6|GPIO_Pin_5|GPIO_Pin_4;    //指定要初始化的IO, GPIO_Pin_0 ~
+             - GPIO_Pin_7, 或操作
+  30   1        GPIO_Inilize(GPIO_P2, &GPIO_InitStructure);  //初始化  
+  31   1      }
+  32          
+  33          static void RelayKeyChange(u8 RELAY_MODULAR_N,u8 RELAY_N)
+  34          {
+  35   1        switch(RELAY_N)
+  36   1        {
+  37   2          case RELAY_1:
+  38   2            IN1 = s_RelayModular[RELAY_MODULAR_N].RelaySwitch[RELAY_N].state;
+  39   2            break;
+  40   2          case RELAY_2:
+  41   2            IN2 = s_RelayModular[RELAY_MODULAR_N].RelaySwitch[RELAY_N].state;
+  42   2            break;
+  43   2          case RELAY_3:
+  44   2            IN3 = s_RelayModular[RELAY_MODULAR_N].RelaySwitch[RELAY_N].state;
+  45   2            break;
+  46   2          case RELAY_4:
+  47   2            IN4 = s_RelayModular[RELAY_MODULAR_N].RelaySwitch[RELAY_N].state;
+  48   2            break;
+  49   2        }
+  50   1      }
+  51          void openRelayModular(u8 RELAY_MODULAR_N)
+  52          {
+  53   1        s_RelayModular[RELAY_MODULAR_N].able = ON;
+C51 COMPILER V8.05a   RELAY                                                                08/09/2017 16:25:14 PAGE 2   
+
+  54   1      }
+  55          
+  56          void closeRelayModular(u8 RELAY_MODULAR_N)
+  57          {
+  58   1        u8 val;
+  59   1        s_RelayModular[RELAY_MODULAR_N].able = OFF;
+  60   1        for(val = 0;val < RELAY_NUM;val++)
+  61   1        {
+  62   2          s_RelayModular[RELAY_MODULAR_N].RelaySwitch[val].state = CLOSE;
+  63   2          RelayKeyChange(RELAY_MODULAR_N,val);
+  64   2        }
+  65   1      }
+  66          
+  67          void openRelayKey(u8 RELAY_MODULAR_N,u8 RELAY_N)
+  68          {
+  69   1        if(s_RelayModular[RELAY_MODULAR_N].able == ON)
+  70   1        {
+  71   2          s_RelayModular[RELAY_MODULAR_N].RelaySwitch[RELAY_N].state = OPEN;
+  72   2          RelayKeyChange(RELAY_MODULAR_N,RELAY_N);
+  73   2        }
+  74   1      }
+  75          
+  76          void closeRelayKey(u8 RELAY_MODULAR_N,u8 RELAY_N)
+  77          {
+  78   1        if(s_RelayModular[RELAY_MODULAR_N].able == ON)
+  79   1        {
+  80   2          s_RelayModular[RELAY_MODULAR_N].RelaySwitch[RELAY_N].state = CLOSE;
+  81   2          RelayKeyChange(RELAY_MODULAR_N,RELAY_N);
+  82   2        }
+  83   1      }
+
+
+MODULE INFORMATION:   STATIC OVERLAYABLE
+   CODE SIZE        =    328    ----
+   CONSTANT SIZE    =   ----    ----
+   XDATA SIZE       =     10       2
+   PDATA SIZE       =   ----    ----
+   DATA SIZE        =   ----    ----
+   IDATA SIZE       =   ----    ----
+   BIT SIZE         =   ----    ----
+END OF MODULE INFORMATION.
+
+
+C51 COMPILATION COMPLETE.  0 WARNING(S),  0 ERROR(S)

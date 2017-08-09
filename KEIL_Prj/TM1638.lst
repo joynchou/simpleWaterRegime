@@ -1,0 +1,330 @@
+C51 COMPILER V8.05a   TM1638                                                               08/09/2017 16:25:14 PAGE 1   
+
+
+C51 COMPILER V8.05a, COMPILATION OF MODULE TM1638
+OBJECT MODULE PLACED IN .\TM1638.obj
+COMPILER INVOKED BY: C:\Keil_v5\C51\BIN\C51.EXE ..\HARDWARE\COMMON_HARDWARE\TM1638\TM1638.c LARGE WARNINGLEVEL(0) BROWSE
+                    - DEBUG OBJECTEXTEND PRINT(.\TM1638.lst) TABS(2) OBJECT(.\TM1638.obj)
+
+line level    source
+
+   1          /***********************************************************
+   2          * 组织名称：
+   3          * 文件名称: TM1638.c
+   4          * 作者:  夏志强
+   5          * 版本: v1.0
+   6          * 日期:
+   7          * 描述: 按键初始化及相关函数
+   8          * 主要函数及其功能 : 
+   9          *
+  10          * 历史修改记录:
+  11          * 1.0修改了getButtonNum中的延迟时长，从100ms改为500us
+  12          * 1.1优化了此驱动按键扫描getButtonNum程序，使之更加快速反应
+  13          * <作者> <时间> <版本 > <描述>
+  14          ***********************************************************/
+  15          #include "TM1638.H"
+  16          #include <math.h>
+  17          
+  18          unsigned char data DisBuffer[8]={0,0,0,0,0,0,0,0};    /*显示缓存区*/ //各个数码管显示的值
+  19          unsigned char code tab[]={0x3F,0x06,0x5B,0x4F,0x66,0x6D,0x7D,0x07,0x7F,0x6F,0x77,0x7C,0x39,0x5E,0x79,0x71,
+             -0x40,0xef};
+  20          
+  21          /*typedef struct
+  22          {
+  23            
+  24          }Tm1638Button;*/
+  25          
+  26          /**********************************************
+  27           *函数：void setTM1638Write(unsigned char  DATA)
+  28           *描述：写数据
+  29           *输入：unsigned char
+  30           *输出：无
+  31           *返回值：void
+  32           *其他说明：
+  33           **********************************************/
+  34          void setTM1638Write(unsigned char DATA)     //写数据函数
+  35          {
+  36   1        unsigned char i;
+  37   1        for(i=0;i<8;i++)
+  38   1        {
+  39   2          TM1638_CLK=0;
+  40   2          delay_us(1);
+  41   2          if(DATA&0X01)
+  42   2            TM1638_DIO=1;
+  43   2          else
+  44   2            TM1638_DIO=0;
+  45   2          DATA>>=1;
+  46   2          TM1638_CLK=1;
+  47   2          delay_us(1);
+  48   2        }
+  49   1      }
+  50          
+  51          /**********************************************
+  52           *函数：unsigned char getTM1638Read(void)
+  53           *描述：读取数据
+C51 COMPILER V8.05a   TM1638                                                               08/09/2017 16:25:14 PAGE 2   
+
+  54           *输入：void
+  55           *输出：unsigned char
+  56           *返回值：void
+  57           *其他说明：
+  58           **********************************************/
+  59          unsigned char getTM1638Read(void)         //读数据函数
+  60          {
+  61   1        unsigned char i;
+  62   1        unsigned char temp=0;
+  63   1        TM1638_DIO=1; //设置为输入
+  64   1        for(i=0;i<8;i++)
+  65   1        {
+  66   2          temp>>=1;
+  67   2          TM1638_CLK=0;
+  68   2          delay_us(1);
+  69   2          if(TM1638_DIO)
+  70   2            temp|=0x80;
+  71   2          TM1638_CLK=1;
+  72   2          delay_us(1);
+  73   2        }
+  74   1        delay_us(1);
+  75   1        return temp;
+  76   1      }   
+  77          
+  78          /**********************************************
+  79           *函数：void setTM1638COM(unsigned char cmd)
+  80           *描述：发送命令
+  81           *输入：unsigned char
+  82           *输出：无
+  83           *返回值：void
+  84           *其他说明：
+  85           **********************************************/
+  86          void setTM1638COM(unsigned char cmd)    //发送命令字
+  87          {
+  88   1        TM1638_STB=0;
+  89   1        delay_us(1);
+  90   1        setTM1638Write(cmd);
+  91   1        TM1638_STB=1;
+  92   1        delay_us(1);
+  93   1      }
+  94          
+  95          /**********************************************
+  96           *函数：unsgined char getButtonNum(void)
+  97           *描述：返回按下的按键编号
+  98           *输入：void
+  99           *输出：unsigned char
+ 100           *返回值：返回按下的按键编号
+ 101           *其他说明：
+ 102           **********************************************/
+ 103          unsigned char getButtonNum(void)
+ 104          {
+ 105   1        unsigned char c[4] = {0},i,key_value=0;
+ 106   1        TM1638_STB=0;
+ 107   1        setTM1638Write(0x42);
+ 108   1        delay_us(500);
+ 109   1        for(i=0;i<4;i++)
+ 110   1          c[i]=getTM1638Read();
+ 111   1        TM1638_STB=1;         //4个字节数据合成一个字节
+ 112   1        if(c[0]==0x04) key_value=1;
+ 113   1        else if(c[0]==0x40) key_value=2;
+ 114   1        else if(c[1]==0x04) key_value=3;
+ 115   1        else if(c[1]==0x40) key_value=4;
+C51 COMPILER V8.05a   TM1638                                                               08/09/2017 16:25:14 PAGE 3   
+
+ 116   1        else if(c[2]==0x04) key_value=5;
+ 117   1        else if(c[2]==0x40) key_value=6;
+ 118   1        else if(c[3]==0x04) key_value=7;
+ 119   1        else if(c[3]==0x40) key_value=8;
+ 120   1        else if(c[0]==0x02) key_value=9;
+ 121   1        else if(c[0]==0x20) key_value=10;
+ 122   1        else if(c[1]==0x02) key_value=11;
+ 123   1        else if(c[1]==0x20) key_value=12;
+ 124   1        else if(c[2]==0x02) key_value=13;
+ 125   1        else if(c[2]==0x20) key_value=14;
+ 126   1        else if(c[3]==0x02) key_value=15;
+ 127   1        else if(c[3]==0x20) key_value=16;
+ 128   1        else return 0;
+ 129   1      //  delay_ms(1);
+ 130   1        return (key_value);
+ 131   1      }
+ 132          
+ 133          /**********************************************
+ 134           *函数：void Init_TM1638(void)
+ 135           *描述：TM1638初始化
+ 136           *输入：
+ 137           *输出：无
+ 138           *返回值：void
+ 139           *其他说明：
+ 140           **********************************************/
+ 141          void Init_TM1638(void)
+ 142          {
+ 143   1        unsigned char i;
+ 144   1        setTM1638COM(0x8a);//亮度
+ 145   1        setTM1638COM(0x8a);//亮度
+ 146   1        setTM1638COM(0x40); //写 数据命令
+ 147   1        TM1638_STB=0;
+ 148   1        setTM1638Write(0xc0);   //写地址命令
+ 149   1        for(i=0;i<16;i++) 
+ 150   1        setTM1638Write(0xff);
+ 151   1        TM1638_STB=1;
+ 152   1      }
+ 153          
+ 154          /**********************************************
+ 155           *函数：void NixieLedLight(unsigned char ddata0,unsigned char ddata1,unsigned char ddata2,unsigned char
+             - ddata3,
+ 156                         unsigned char ddata4,unsigned char ddata5,unsigned char ddata6,unsigned char ddata7)
+ 157           *描述：LED显示
+ 158           *输入：从高到低依次输入数值可使LED数码管从高到低依次显示
+ 159           *输出：无
+ 160           *返回值：void
+ 161           *其他说明：
+ 162           **********************************************/
+ 163          void NixieLedLight(unsigned char ddata0,unsigned char ddata1,unsigned char ddata2,unsigned char ddata3,
+ 164                         unsigned char ddata4,unsigned char ddata5,unsigned char ddata6,unsigned char ddata7)
+ 165          
+ 166          {
+ 167   1        unsigned char  writedata0,writedata1,writedata2,writedata3,writedata4,writedata5,writedata6,writedata7;
+ 168   1        unsigned char  data0,data1,data2,data3,data4,data5,data6,data7;
+ 169   1        data0=ddata7;
+ 170   1        data1=ddata6;
+ 171   1        data2=ddata5;
+ 172   1        data3=ddata4;
+ 173   1        data4=ddata3;
+ 174   1        data5=ddata2;
+ 175   1        data6=ddata1;
+ 176   1        data7=ddata0;
+C51 COMPILER V8.05a   TM1638                                                               08/09/2017 16:25:14 PAGE 4   
+
+ 177   1      
+ 178   1        writedata0=(tab[data0]&0x01)+((tab[data1]&0x01)<<1)+((tab[data2]&0x01)<<2)+((tab[data3]&0x01)<<3)+((tab[d
+             -ata4]&0x01)<<4)
+ 179   1          +((tab[data5]&0x01)<<5)+((tab[data6]&0x01)<<6)+((tab[data7]&0x01)<<7);
+ 180   1      
+ 181   1        writedata1=((tab[data0]&0x02)>>1)+((tab[data1]&0x02))+((tab[data2]&0x02)<<1)+((tab[data3]&0x02)<<2)+((tab
+             -[data4]&0x02)<<3)
+ 182   1          +((tab[data5]&0x02)<<4)+((tab[data6]&0x02)<<5)+((tab[data7]&0x02)<<6);
+ 183   1      
+ 184   1        writedata2=((tab[data0]&0x04)>>2)+((tab[data1]&0x04)>>1)+((tab[data2]&0x04))+((tab[data3]&0x04)<<1)+((tab
+             -[data4]&0x04)<<2)
+ 185   1          +((tab[data5]&0x04)<<3)+((tab[data6]&0x04)<<4)+((tab[data7]&0x04)<<5);
+ 186   1      
+ 187   1        writedata3=((tab[data0]&0x08)>>3)+((tab[data1]&0x08)>>2)+((tab[data2]&0x08)>>1)+((tab[data3]&0x08))+((tab
+             -[data4]&0x08)<<1)
+ 188   1          +((tab[data5]&0x08)<<2)+((tab[data6]&0x08)<<3)+((tab[data7]&0x08)<<4);
+ 189   1      
+ 190   1        writedata4=((tab[data0]&0x10)>>4)+((tab[data1]&0x10)>>3)+((tab[data2]&0x10)>>2)+((tab[data3]&0x10)>>1)+((
+             -tab[data4]&0x10))
+ 191   1          +((tab[data5]&0x10)<<1)+((tab[data6]&0x10)<<2)+((tab[data7]&0x10)<<3);
+ 192   1      
+ 193   1        writedata5=((tab[data0]&0x20)>>5)+((tab[data1]&0x20)>>4)+((tab[data2]&0x20)>>3)+((tab[data3]&0x20)>>2)+((
+             -tab[data4]&0x20)>>1)
+ 194   1          +((tab[data5]&0x20))+((tab[data6]&0x20)<<1)+((tab[data7]&0x20)<<2);
+ 195   1      
+ 196   1        writedata6=((tab[data0]&0x40)>>6)+((tab[data1]&0x40)>>5)+((tab[data2]&0x40)>>4)+((tab[data3]&0x40)>>3)+((
+             -tab[data4]&0x40)>>2)
+ 197   1          +((tab[data5]&0x40)>>1)+((tab[data6]&0x40))+((tab[data7]&0x40)<<1);
+ 198   1      
+ 199   1        writedata7=((tab[data0]&0x80)>>7)+((tab[data1]&0x80)>>6)+((tab[data2]&0x80)>>5)+((tab[data3]&0x80)>>4)+((
+             -tab[data4]&0x80)>>3)
+ 200   1          +((tab[data5]&0x80)>>2)+((tab[data6]&0x80)>>1)+((tab[data7]&0x80));
+ 201   1      
+ 202   1        setTM1638COM(0x8a);//亮度
+ 203   1        setTM1638COM(0x40); //写数据命令
+ 204   1        TM1638_STB=0;
+ 205   1        setTM1638Write(0xc0);   //写地址命令
+ 206   1        
+ 207   1        setTM1638Write(writedata0);
+ 208   1        setTM1638Write(0x80);
+ 209   1        setTM1638Write(writedata1);
+ 210   1        setTM1638Write(0x00);
+ 211   1        setTM1638Write(writedata2);
+ 212   1        setTM1638Write(0x00);
+ 213   1        setTM1638Write(writedata3);
+ 214   1        setTM1638Write(0x00);
+ 215   1        setTM1638Write(writedata4);
+ 216   1        setTM1638Write(0x00);
+ 217   1        setTM1638Write(writedata5);
+ 218   1        setTM1638Write(0x00);
+ 219   1        setTM1638Write(writedata6);
+ 220   1        setTM1638Write(0x00);
+ 221   1        setTM1638Write(writedata7);
+ 222   1        setTM1638Write(0x00);
+ 223   1      
+ 224   1        TM1638_STB=1;
+ 225   1      
+ 226   1      
+ 227   1      }
+ 228          
+ 229          /**********************************************
+ 230           *函数：void TM1638LedDisplay(long int value)
+C51 COMPILER V8.05a   TM1638                                                               08/09/2017 16:25:14 PAGE 5   
+
+ 231           *描述：LED显示
+ 232           *输入：long int value:可输入负整数但不能输入浮点数
+ 233           *输出：无
+ 234           *返回值：void
+ 235           *其他说明：
+ 236           **********************************************/
+ 237          void TM1638LedDisplay(long int value)
+ 238          {
+ 239   1        unsigned char LedValue[8] = {0},i,singleValue;
+ 240   1        if(value > -9999999 && value < 99999999)
+ 241   1        {   
+ 242   2          if(value >= 0)
+ 243   2          {
+ 244   3            for(i = 0;i < 8;i++)
+ 245   3            {
+ 246   4              singleValue = value % 10;
+ 247   4              value /= 10;
+ 248   4              LedValue[i] = singleValue;
+ 249   4            }     
+ 250   3          }
+ 251   2          else
+ 252   2          {
+ 253   3            value = labs(value);
+ 254   3            for(i = 0;i < 8;i++)
+ 255   3            {
+ 256   4              if(value > 0)
+ 257   4              {
+ 258   5                singleValue = value % 10;
+ 259   5                value /= 10;
+ 260   5                LedValue[i] = singleValue;
+ 261   5              }
+ 262   4              else
+ 263   4              {
+ 264   5                LedValue[i] = 16;
+ 265   5                break;
+ 266   5              }
+ 267   4            }
+ 268   3          }
+ 269   2          NixieLedLight(LedValue[7],LedValue[6],LedValue[5],LedValue[4],LedValue[3],LedValue[2],LedValue[1],LedVal
+             -ue[0]);
+ 270   2        }
+ 271   1      }
+ 272          
+ 273          
+ 274          /**********************************************
+ 275           *函数：void CloseTM1638Display(void)
+ 276           *描述：关闭屏幕
+ 277           *输入：void
+ 278           *输出：无
+ 279           *返回值：void
+ 280           *其他说明：
+ 281           **********************************************/
+ 282          void CloseTM1638Display(void)
+ 283          {
+ 284   1        setTM1638COM(0x80);
+ 285   1      }
+
+
+MODULE INFORMATION:   STATIC OVERLAYABLE
+   CODE SIZE        =   1852    ----
+   CONSTANT SIZE    =     30    ----
+   XDATA SIZE       =   ----      45
+C51 COMPILER V8.05a   TM1638                                                               08/09/2017 16:25:14 PAGE 6   
+
+   PDATA SIZE       =   ----    ----
+   DATA SIZE        =      8    ----
+   IDATA SIZE       =   ----    ----
+   BIT SIZE         =   ----    ----
+END OF MODULE INFORMATION.
+
+
+C51 COMPILATION COMPLETE.  0 WARNING(S),  0 ERROR(S)
