@@ -1,91 +1,135 @@
-#include <stdio.h>
 #include <stdlib.h>
 #include "TASK/task.h"
+#define TEMPERATURE_UPDATE  15 
+#define BUTTON_SCAN 14
+#define TIME_UPDATE 13
+#define BUTTON_SOUND 12
 void taskStart() _task_ 0
 {
 	setup();
-	blink(4);
-	//os_create_task(1);
-	//os_create_task(2);
-	os_create_task(3);
-	//os_create_task(4);
- 	//os_create_task(12);
-	//os_create_task(13);
-	//os_create_task(14);
-	PrintString1("Setup is ok!\n");
+	blink(3);
+	os_create_task(5);
+	os_create_task(BUTTON_SCAN);
+	os_create_task(BUTTON_SOUND);
+	//	os_create_task(TEMPERATURE_UPDATE);
+	//	os_create_task(TIME_UPDATE);
 	os_delete_task(0);
-}
 
-void task1(void) _task_ 1
+}
+void printDistance(void) _task_ 5
 {
-	openAllPhotoEleMod();
-	while(1)
+	for (;;)
 	{
-		PhotoElectricScan();
-		os_wait(K_TMO,5,0);
+		DataScope_Get_Channel_Data(getADS1115ConvsionData(CHANNEL_1), 1);
+
+		sendScopeData(1);
+		os_wait(K_TMO, 30, 0);
 	}
 }
-
-void task2(void) _task_ 2
+void printTmp()  _task_  9
 {
-	while(1)
+	for (;;)
 	{
-		if(getPhotoEleState(PHOTOELE_1) == 1)
-			PrintString1("Code is no problem!\n");
+		getDS18B20_Temperature(0);
+		//		DataScope_Get_Channel_Data(getDS18B20_Temperature(0));
+		//		sendScopeData(1);
+		os_wait(K_TMO, 30, 0);
 	}
 }
-
-void task3(void) _task_ 3
+void Distance(void)  _task_ 10
 {
-	u8 date[30];
-	ChoiceHalfDuplexMode(RX_MODE);
-	while(1)
-	{
-		nRF24L01_RxPacket(date);
-		PrintString1(date);
-		os_wait(K_TMO,5,0);
-	}
-}
+#define TIME 130
 
-void task4(void) _task_ 4
-{
-	u8 date[128],i;
-	u16 a[7] = {2,4,51,24,56,7,8};
-	ChoiceHalfDuplexMode(TX_MODE);
-	while(1)
+	float value;
+	float actValue;
+	float Data[TIME + 1];
+	float time = 0;
+	float distance = 0;
+
+	u8 i = 0;
+	for (;;)
 	{
-		sprintf(date,"%d %d %d %d %d %d %d\n",a[0],a[1],a[2],a[3],a[4],a[5],a[6]);
-		nRF24L01_TxPacket(date);
-		//PrintString1(date);
-		os_wait(K_TMO,250,0);
-		os_wait(K_TMO,250,0);
-		os_wait(K_TMO,250,0);
-		os_wait(K_TMO,250,0);
-		for(i = 0;i < 7;i++)
+		for (i = 0; i < TIME; i++)
 		{
-			a[i] += 3;
+			updateDistance(HC_SR04_1);
+			os_wait(K_TMO, 4, 0);
+			actValue = (float)getTimerValue(HC_SR04_1);//原始数据
+			value = limitingFilter(actValue, 30000UL);//限幅滤波
+			value = shudderingFilter(value, 300);//消抖滤波
+			value = movingAverageFilter(value);//滑动平均滤波
+			Data[i] = value;
 		}
+		Data[TIME] = filter(Data, TIME, 65535, 0);//中位值平均滤波
+		time = Data[TIME] * 4.166667e-6;//公式，time的单位为ms，在24mzh下
+		distance = (time * (331.4f + 0.607*getDS18B20_Temperature(0))) / 20;
+		setDistance(HC_SR04_1, distance);
+		DataScope_Get_Channel_Data(distance, 1);
+		sendScopeData(1);
+		os_wait(K_TMO, 100, 0);
+
+		//for (i = 0; i < TIME; i++)
+		//{
+		//	updateDistance(US_016_1);
+		//	os_wait(K_TMO, 4, 0);
+		//	actValue = (float)getTimerValue(US_016_1);//原始数据
+		//	value = limitingFilter(actValue, 30000UL);//限幅滤波
+		//	value = shudderingFilter(value, 300);//消抖滤波
+		//	value = movingAverageFilter(value);//滑动平均滤波
+		//	Data[i] = value;
+		//}
+		//Data[TIME] = filter(Data, TIME, 65535, 0);//中位值平均滤波
+		//distance = Data[TIME]*0.015625f;
+		//setDistance(US_016_1, distance);
+		//DataScope_Get_Channel_Data(distance, 1);
+	//	sendScopeData(1);
+		//os_wait(K_TMO, 100, 0);
+
 	}
+}
+//时间更新进程，频率5hz
+void TimeUpdate(void) _task_ TIME_UPDATE
+{
+	for (;;)
+	{
+
+		os_wait(K_IVL, 200, 0);
+	}
+}
+//温度计数值更新进程，频率10hz
+void  TemperatureUpdata(void) _task_ TEMPERATURE_UPDATE
+{
+	for (;;)
+	{
+
+
+		os_wait(K_IVL, 100, 0);
+
+	}
+}
+//键盘按键声发出进程，频率50hz
+void ButtonSound(void) _task_ BUTTON_SOUND
+{
+	for (;;)
+	{
+		if (getButtonNum())
+		{
+			buzzWait();
+		}
+		os_wait(K_IVL, 20, 0);
+	}
+
+}
+//按键扫描进程，50hz
+void ButtonStateUpdate(void) _task_ BUTTON_SCAN
+{
+	for (;;)
+	{
+		buttonScan();
+
+
+		os_wait(K_IVL, 20, 0);
+
+	}
+
 }
 
-void task13(void) _task_ 13
-{
-	while(1)
-	{
-	  ReadTemperature();		
-		os_wait(K_TMO,5,0);
-	}
-}
-
-void task14(void) _task_ 14
-{
-	u16 tempValue;
-	u8 value[30];
-	while(1)
-	{
-		tempValue = getTemperatureInteger();
-		sprintf(value,"%d\n",tempValue);
-		PrintString1(value);
-		os_wait(K_TMO,5,0);
-	}
-}

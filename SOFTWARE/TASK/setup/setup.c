@@ -38,27 +38,35 @@ void    UART1_init(unsigned long BandRate)
 }
 void test(void)//Æ÷¼þ²âÊÔ
 {
-	
- }
+
+}
 void setup(void)
 {
 
-	UART1_init(115200ul);
+	UART1_init(9600);
 	timerInit();
-  	Board_LED_Init();
+	Board_LED_Init();
 	LCD5510_Init();
+	Button_config();
+	Speaker_Init();
+	ADS1115_Config();
+	ultrasonicInit();
+	DS18B20_Init();
 	LCD_printsl(0, 0, "Hello!");
 	os_wait(K_TMO, 250, 0);
+	os_wait(K_TMO, 250, 0);
+	os_wait(K_TMO, 250, 0);
+	os_wait(K_TMO, 250, 0);
 	LCD_clr_scr();
-	Button_config();
- 
- 	HC_SR04_init();
-	open_HC_SR04(HC_SR04_1);
+	//InitJY901(JY901_1);
+	//EnableJY901(JY901_1);
+	//openJY901SbufMode(JY901_1);
+	//ADC_config(ADC_P10, ADC_540T);
+	open_Ultrasonic(HC_SR04_1);
+	open_Ultrasonic(US_016_1);
 	open_ADS1115(CHANNEL_1);
 	open_ADS1115(CHANNEL_2);
-//	open_ADS1115(CHANNEL_3);
-//	open_ADS1115(CHANNEL_4);
-//	// test();
+ 	// test();
 
 }
 
