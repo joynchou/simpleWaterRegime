@@ -1,4 +1,4 @@
-C51 COMPILER V8.05a   SETUP                                                                08/09/2017 19:24:38 PAGE 1   
+C51 COMPILER V8.05a   SETUP                                                                08/09/2017 19:38:21 PAGE 1   
 
 
 C51 COMPILER V8.05a, COMPILATION OF MODULE SETUP
@@ -62,10 +62,9 @@ line level    source
   52   1        ADS1115_Config();
   53   1        ultrasonicInit();
   54   1        DS18B20_Init();
-C51 COMPILER V8.05a   SETUP                                                                08/09/2017 19:24:38 PAGE 2   
+C51 COMPILER V8.05a   SETUP                                                                08/09/2017 19:38:21 PAGE 2   
 
-  55   1        setPHCoefficient(PH_1,-1412.3f,18100.0f);
-*** ERROR C202 IN LINE 55 OF ..\SOFTWARE\TASK\SETUP\SETUP.C: 'PH_1': undefined identifier
+  55   1        PH_config(PH_1,-0.00070804f,12.8156709f);
   56   1        //LCD_printsl(0, 0, "Hello!");
   57   1      //  os_wait(K_TMO, 250, 0);
   58   1      //  os_wait(K_TMO, 250, 0);
@@ -85,4 +84,16 @@ line level    source
   72   1      }
   73          
 
-C51 COMPILATION COMPLETE.  0 WARNING(S),  1 ERROR(S)
+
+MODULE INFORMATION:   STATIC OVERLAYABLE
+   CODE SIZE        =    112    ----
+   CONSTANT SIZE    =     32    ----
+   XDATA SIZE       =   ----      13
+   PDATA SIZE       =   ----    ----
+   DATA SIZE        =   ----    ----
+   IDATA SIZE       =   ----    ----
+   BIT SIZE         =   ----    ----
+END OF MODULE INFORMATION.
+
+
+C51 COMPILATION COMPLETE.  0 WARNING(S),  0 ERROR(S)

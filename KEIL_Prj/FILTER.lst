@@ -1,4 +1,4 @@
-C51 COMPILER V8.05a   FILTER                                                               08/09/2017 17:33:09 PAGE 1   
+C51 COMPILER V8.05a   FILTER                                                               08/09/2017 19:30:53 PAGE 1   
 
 
 C51 COMPILER V8.05a, COMPILATION OF MODULE FILTER
@@ -62,7 +62,7 @@ line level    source
   50   1        double p_now;
   51   1        double kg;
   52   1      
-C51 COMPILER V8.05a   FILTER                                                               08/09/2017 17:33:09 PAGE 2   
+C51 COMPILER V8.05a   FILTER                                                               08/09/2017 19:30:53 PAGE 2   
 
   53   1        x_mid = x_last; //x_last=x(k-1|k-1),x_mid=x(k|k-1)
   54   1        p_mid = p_last + Q; //p_mid=p(k|k-1),p_last=p(k-1|k-1),Q=噪声
@@ -126,7 +126,7 @@ line level    source
  110          // Access:    public 
  111          // Returns:   float
  112          // Qualifier: //滑动平均滤波,窗口值请改宏定义
-C51 COMPILER V8.05a   FILTER                                                               08/09/2017 17:33:09 PAGE 3   
+C51 COMPILER V8.05a   FILTER                                                               08/09/2017 19:30:53 PAGE 3   
 
  113          // Parameter: float value：需要滤波的数值
  114          //************************************
@@ -190,7 +190,7 @@ line level    source
  172   1        else//如果上一次的结果等于这一次的结果
  173   1        {
  174   2          i = 0;
-C51 COMPILER V8.05a   FILTER                                                               08/09/2017 17:33:09 PAGE 4   
+C51 COMPILER V8.05a   FILTER                                                               08/09/2017 19:30:53 PAGE 4   
 
  175   2        }
  176   1        return  lastValue;

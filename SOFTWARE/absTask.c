@@ -20,7 +20,7 @@ void printDistance(void) _task_ 5
 {
 	for (;;)
 	{
-		DataScope_Get_Channel_Data(getPH_Value(0,1), 1);
+		DataScope_Get_Channel_Data(getADS1115ConvsionData(0)*(-0.00070804f)+12.8156709f, 1);
 
 		sendScopeData(1);
 		os_wait(K_TMO, 30, 0);

@@ -1,4 +1,4 @@
-C51 COMPILER V8.05a   ABSTASK                                                              08/09/2017 19:24:45 PAGE 1   
+C51 COMPILER V8.05a   ABSTASK                                                              08/09/2017 19:42:17 PAGE 1   
 
 
 C51 COMPILER V8.05a, COMPILATION OF MODULE ABSTASK
@@ -30,8 +30,7 @@ line level    source
   20          {
   21   1        for (;;)
   22   1        {
-  23   2          DataScope_Get_Channel_Data(getPH_Value(0,1), 1);
-*** ERROR C267 IN LINE 23 OF ..\SOFTWARE\ABSTASK.C: 'getPH_Value': requires ANSI-style prototype
+  23   2          DataScope_Get_Channel_Data(getADS1115ConvsionData(0)*(-0.00070804f)+12.8156709f, 1);
   24   2      
   25   2          sendScopeData(1);
   26   2          os_wait(K_TMO, 30, 0);
@@ -62,9 +61,9 @@ line level    source
   51   1        {
   52   2          for (i = 0; i < TIME; i++)
   53   2          {
-C51 COMPILER V8.05a   ABSTASK                                                              08/09/2017 19:24:45 PAGE 2   
-
   54   3            updateDistance(HC_SR04_1);
+C51 COMPILER V8.05a   ABSTASK                                                              08/09/2017 19:42:17 PAGE 2   
+
   55   3            os_wait(K_TMO, 4, 0);
   56   3            actValue = (float)getTimerValue(HC_SR04_1);//原始数据
   57   3            value = limitingFilter(actValue, 30000UL);//限幅滤波
@@ -126,9 +125,9 @@ line level    source
  113          {
  114   1        for (;;)
  115   1        {
-C51 COMPILER V8.05a   ABSTASK                                                              08/09/2017 19:24:45 PAGE 3   
-
  116   2          if (getButtonNum())
+C51 COMPILER V8.05a   ABSTASK                                                              08/09/2017 19:42:17 PAGE 3   
+
  117   2          {
  118   3            buzzWait();
  119   3          }
@@ -151,4 +150,16 @@ line level    source
  136   1      }
  137          
 
-C51 COMPILATION COMPLETE.  0 WARNING(S),  1 ERROR(S)
+
+MODULE INFORMATION:   STATIC OVERLAYABLE
+   CODE SIZE        =    628    ----
+   CONSTANT SIZE    =   ----    ----
+   XDATA SIZE       =   ----      61
+   PDATA SIZE       =   ----    ----
+   DATA SIZE        =   ----    ----
+   IDATA SIZE       =   ----    ----
+   BIT SIZE         =   ----    ----
+END OF MODULE INFORMATION.
+
+
+C51 COMPILATION COMPLETE.  0 WARNING(S),  0 ERROR(S)

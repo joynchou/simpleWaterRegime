@@ -1,4 +1,4 @@
-C51 COMPILER V8.05a   PHSENSOR                                                             08/09/2017 19:24:38 PAGE 1   
+C51 COMPILER V8.05a   PHSENSOR                                                             08/09/2017 19:58:04 PAGE 1   
 
 
 C51 COMPILER V8.05a, COMPILATION OF MODULE PHSENSOR
@@ -62,13 +62,12 @@ line level    source
   52          // Qualifier: //此函数还可以返回上一次的PH值，不需要读取时间 ，是静态的数据，因为需要保存
   53          // Parameter: u8 PH_N
   54          // Parameter: u8 whichPHvalue
-C51 COMPILER V8.05a   PHSENSOR                                                             08/09/2017 19:24:38 PAGE 2   
+C51 COMPILER V8.05a   PHSENSOR                                                             08/09/2017 19:58:04 PAGE 2   
 
   55          //************************************
   56          #define FILTER_TIME  10
   57          float getPH_Value(u8 PH_N,u8  whichPHvalue)
   58          {
-*** WARNING C235 IN LINE 58 OF ..\HARDWARE\SENSOR\PHSENSOR\PHSENSOR.C: parameter 2: different types
   59   1        u16 PH_ADC_Value[FILTER_TIME+1];
   60   1        u8 i = 0;
   61   1        static float presentPH = 0; // 当前结果
@@ -103,4 +102,4 @@ MODULE INFORMATION:   STATIC OVERLAYABLE
 END OF MODULE INFORMATION.
 
 
-C51 COMPILATION COMPLETE.  1 WARNING(S),  0 ERROR(S)
+C51 COMPILATION COMPLETE.  0 WARNING(S),  0 ERROR(S)

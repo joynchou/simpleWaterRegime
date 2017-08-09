@@ -7,5 +7,5 @@
 
 void PH_config(u8 PH_N, float k, float b);
 void setPHCoefficient(u8 PH_N,float k,float b);
-float getPH_Value(u8 PH_N,bit whichPHvalue);
+float getPH_Value(u8 PH_N,u8 whichPHvalue);
 #endif

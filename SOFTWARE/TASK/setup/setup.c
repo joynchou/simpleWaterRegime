@@ -52,7 +52,7 @@ void setup(void)
 	ADS1115_Config();
 	ultrasonicInit();
 	DS18B20_Init();
-	setPHCoefficient(PH_1,-1412.3f,18100.0f);
+	PH_config(PH_1,-0.00070804f,12.8156709f);
 	//LCD_printsl(0, 0, "Hello!");
 //	os_wait(K_TMO, 250, 0);
 //	os_wait(K_TMO, 250, 0);

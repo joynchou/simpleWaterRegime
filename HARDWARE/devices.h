@@ -23,5 +23,6 @@
 #include "SENSOR/ANGLE/ANGLE.h"
 #include "WIRELESS/NRF24L01/NRF24L01.H"
 #include "SPEAKER/speaker.h"
+#include "SENSOR/phSensor/phSensor.h"
 #endif
  
