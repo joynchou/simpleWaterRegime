@@ -1,4 +1,4 @@
-C51 COMPILER V8.05a   ANGLE                                                                08/09/2017 19:30:55 PAGE 1   
+C51 COMPILER V8.05a   ANGLE                                                                08/10/2017 09:20:55 PAGE 1   
 
 
 C51 COMPILER V8.05a, COMPILATION OF MODULE ANGLE
@@ -62,7 +62,7 @@ line level    source
   52          float getAngle(bit whichAngle)
   53          {
   54   1        u16 angleData[10];
-C51 COMPILER V8.05a   ANGLE                                                                08/09/2017 19:30:55 PAGE 2   
+C51 COMPILER V8.05a   ANGLE                                                                08/10/2017 09:20:55 PAGE 2   
 
   55   1        u8  angleDataloopTemp1=0;
   56   1          static float presentAngle, lastAngle;  //此函数还可以返回上一次的角度值，不需要读取时间 ，是静态的数据

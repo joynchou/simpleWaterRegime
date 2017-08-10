@@ -1,4 +1,4 @@
-C51 COMPILER V8.05a   HC_SR04                                                              08/09/2017 19:30:55 PAGE 1   
+C51 COMPILER V8.05a   HC_SR04                                                              08/10/2017 09:22:49 PAGE 1   
 
 
 C51 COMPILER V8.05a, COMPILATION OF MODULE HC_SR04
@@ -62,7 +62,7 @@ line level    source
   52          // Method:    open_HC_SR04
   53          // FullName:  open_HC_SR04
   54          // Access:    public 
-C51 COMPILER V8.05a   HC_SR04                                                              08/09/2017 19:30:55 PAGE 2   
+C51 COMPILER V8.05a   HC_SR04                                                              08/10/2017 09:22:49 PAGE 2   
 
   55          // Returns:   void
   56          // Qualifier: 打开此模块的开关
@@ -84,131 +84,159 @@ line level    source
   72   1        return ultrasonic[num].state;
   73   1      
   74   1      }
-  75          void setTimerValue(u8 num, u16 value)
-  76          {
-  77   1        ultrasonic[num].timerValue = value;
-  78   1      }
-  79          void setDistance(u8 num,float value)
-  80          {
-  81   1        ultrasonic[num].distance = value;
-  82   1      }
-  83          //************************************
-  84          // Method:    getTimerValue
-  85          // FullName:  getTimerValue
-  86          // Access:    public 
-  87          // Returns:   u16
-  88          // Qualifier: 获得最原始的高电平时间，单位ms
-  89          // Parameter: u8 num
-  90          //************************************
-  91          u16 getTimerValue(u8 num)
-  92          {
-  93   1        return ultrasonic[num].timerValue;
-  94   1      
-  95   1      }
-  96          //************************************
-  97          // Method:    updateDistance
-  98          // FullName:  updateDistance
-  99          // Access:    public 
- 100          // Returns:   void
- 101          // Qualifier: 放入进程中更新距离
- 102          // Parameter: u8 num
- 103          //************************************
- 104          void updateDistance(u8 num)
- 105          {
- 106   1        static double time;//相应时长，单位ms
- 107   1        if (!ultrasonic[num].state)
- 108   1        {
- 109   2          return ;
- 110   2        }
- 111   1        if (num==HC_SR04_1)
- 112   1        {
- 113   2          ext0Able();
- 114   2      
- 115   2          Trig = HIGH;//发出脉冲信号
- 116   2          delay_us(5);//此函数不太准，3us实际大概
-C51 COMPILER V8.05a   HC_SR04                                                              08/09/2017 19:30:55 PAGE 3   
+  75          //************************************
+  76          // Method:    getTimerValue
+  77          // FullName:  getTimerValue
+  78          // Access:    public 
+  79          // Returns:   u16
+  80          // Qualifier: 获得最原始的高电平时间，单位ms
+  81          // Parameter: u8 num
+  82          //************************************
+  83          u16 getTimerValue(u8 num)
+  84          {
+  85   1        return ultrasonic[num].timerValue;
+  86   1      
+  87   1      }
+  88          //************************************
+  89          // Method:    updateDistance
+  90          // FullName:  updateDistance
+  91          // Access:    public 
+  92          // Returns:   void
+  93          // Qualifier: 放入进程中更新距离
+  94          // Parameter: u8 num
+  95          //************************************
+  96          void updateDistance(u8 num)
+  97          {
+  98   1      #define TIME 150
+  99   1      
+ 100   1        float value;
+ 101   1        float actValue;
+ 102   1        float Data[TIME + 1];
+ 103   1        float time = 0;
+ 104   1        float distance = 0;
+ 105   1        u8 i = 0;
+ 106   1        if (!ultrasonic[num].state)
+ 107   1        {
+ 108   2          return;
+ 109   2        }
+ 110   1        if (num == (HC_SR04_1 || US_100_1))
+ 111   1        {
+ 112   2          ext0Able();
+ 113   2      
+ 114   2          Trig = HIGH;//发出脉冲信号
+ 115   2          delay_us(5);//此函数不太准，3us实际大概
+ 116   2          Trig = LOW;
+C51 COMPILER V8.05a   HC_SR04                                                              08/10/2017 09:22:49 PAGE 3   
 
- 117   2          Trig = LOW;
- 118   2        }
- 119   1        else if (num == US_016_1)
- 120   1        {
- 121   2          ultrasonic[US_016_1].timerValue = getADS1115ConvsionData(CHANNEL_1);
- 122   2          delay_us(5);//此函数不太准，3us实际大概
- 123   2        }
- 124   1        else
- 125   1        {
- 126   2      
- 127   2        }
- 128   1       }
- 129          //************************************
- 130          // Method:    getdistance
- 131          // FullName:  getdistance
- 132          // Access:    public 
- 133          // Returns:   float
- 134          // Qualifier: //获取传感器距离,单位cm,原始数据，
- 135          // Parameter: u8 num
- 136          //************************************
- 137          double getdistance(u8 num)//获取传感器距离
- 138          {
- 139   1      
- 140   1       
- 141   1        return ultrasonic[num].distance;//如果没有更新数据则返回上一次更新的值，否则返回最近值
- 142   1      }
- 143          /********************* INT0中断函数 *************************/
- 144          static void Ext_INT0(void) interrupt INT0_VECTOR    //进中断时已经清除标志
- 145          {
- 146   1      
- 147   1        //u8 timerValueL, timerValueH;
- 148   1      #ifdef DEBUG
+ 117   2      
+ 118   2          for (i = 0; i < TIME; i++)
+ 119   2          {
+ 120   3            actValue = (float)ultrasonic[0].timerValue;//原始数据
+ 121   3            value = limitingFilter(actValue, 30000UL);//限幅滤波
+ 122   3            value = shudderingFilter(value, 500);//消抖滤波
+ 123   3            value = movingAverageFilter(value);//滑动平均滤波
+ 124   3            Data[i] = value;
+ 125   3          }
+ 126   2          Data[TIME] = filter(Data, TIME, 65535, 0);//中位值平均滤波
+ 127   2          time = Data[TIME] * 4.166667e-6;//公式，time的单位为ms，在24mzh下
+ 128   2          distance = (time * 340) / 2;
+ 129   2          ultrasonic[num].distance = distance;
+ 130   2      
+ 131   2      
+ 132   2        }
+ 133   1        else if (num == US_016_1)
+ 134   1        {
+ 135   2          ultrasonic[US_016_1].timerValue = getADS1115ConvsionData(CHANNEL_1);
+ 136   2          for (i = 0; i < TIME; i++)
+ 137   2          {
+ 138   3            actValue = ultrasonic[US_016_1].timerValue;//原始数据
+ 139   3            value = limitingFilter(actValue, 30000UL);//限幅滤波
+ 140   3            value = shudderingFilter(value, 300);//消抖滤波
+ 141   3            value = movingAverageFilter(value);//滑动平均滤波
+ 142   3            Data[i] = value;
+ 143   3          }
+ 144   2          Data[TIME] = filter(Data, TIME, 65535, 0);//中位值平均滤波
+ 145   2          distance = Data[TIME] * 0.015625f;   //16位adc
+ 146   2          ultrasonic[num].distance = distance;
+ 147   2      
+ 148   2        }
+ 149   1        else
+ 150   1        {
+ 151   2      
+ 152   2        }
+ 153   1      
+ 154   1      }
+ 155          
+ 156          
+ 157          //************************************
+ 158          // Method:    getdistance
+ 159          // FullName:  getdistance
+ 160          // Access:    public 
+ 161          // Returns:   float
+ 162          // Qualifier: //获取传感器距离,单位cm,原始数据，
+ 163          // Parameter: u8 num
+ 164          //************************************
+ 165          double getdistance(u8 num)//获取传感器距离
+ 166          {
+ 167   1      
+ 168   1      
+ 169   1        return ultrasonic[num].distance;//如果没有更新数据则返回上一次更新的值，否则返回最近值
+ 170   1      }
+ 171          /********************* INT0中断函数 *************************/
+ 172          static void Ext_INT0(void) interrupt INT0_VECTOR    //进中断时已经清除标志
+ 173          {
+ 174   1      
+ 175   1        //u8 timerValueL, timerValueH;
+ 176   1      #ifdef DEBUG
                   //PrintString1("into\r\n");
               #endif
- 151   1        //delay_us(1);
- 152   1        if (INT0 == RISING_EDGE)//上升沿
- 153   1        {
- 154   2          Timer4_Run();//开始计时
- 155   2          extiBit = LOW;
- 156   2      #ifdef DEBUG
+C51 COMPILER V8.05a   HC_SR04                                                              08/10/2017 09:22:49 PAGE 4   
+
+ 179   1        //delay_us(1);
+ 180   1        if (INT0 == RISING_EDGE)//上升沿
+ 181   1        {
+ 182   2          Timer4_Run();//开始计时
+ 183   2          extiBit = LOW;
+ 184   2      #ifdef DEBUG
                   PrintString1("rising edge\r\n");
               #endif
- 159   2      
- 160   2        }
- 161   1        else if (INT0 == FALLING_EDGE)//下降沿
- 162   1        {
- 163   2      
- 164   2          Timer4_Stop();
- 165   2          ultrasonic[0].timerValue = TH4;
- 166   2          ultrasonic[0].timerValue = ultrasonic[0].timerValue * 256 + TL4;
- 167   2      #ifdef DEBUG
+ 187   2      
+ 188   2        }
+ 189   1        else if (INT0 == FALLING_EDGE)//下降沿
+ 190   1        {
+ 191   2      
+ 192   2          Timer4_Stop();
+ 193   2          ultrasonic[0].timerValue = TH4;
+ 194   2          ultrasonic[0].timerValue = ultrasonic[0].timerValue * 256 + TL4;
+ 195   2      #ifdef DEBUG
                   USART1_printf("valueL is %d\r\n", (u16)TL4);
                   USART1_printf("valueH is %d\r\n", (u16)TH4);
                   sprintf(str, "value is %u\r\n", TH4 * 256 + TL4);
                   PrintString1(str);
               #endif      
- 173   2          TH4 = 0;
- 174   2          TL4 = 0;
- 175   2          extiBit = OK;//数据已准备好
- 176   2      
- 177   2        }
- 178   1        else
-C51 COMPILER V8.05a   HC_SR04                                                              08/09/2017 19:30:55 PAGE 4   
-
- 179   1        {
- 180   2          extiBit = LOW;
- 181   2          Timer4_Stop();
- 182   2      
- 183   2      #ifdef DEBUG
+ 201   2          TH4 = 0;
+ 202   2          TL4 = 0;
+ 203   2          extiBit = OK;//数据已准备好
+ 204   2      
+ 205   2        }
+ 206   1        else
+ 207   1        {
+ 208   2          extiBit = LOW;
+ 209   2          Timer4_Stop();
+ 210   2      
+ 211   2      #ifdef DEBUG
                   PrintString1("error\r\n");
               #endif
- 186   2        }
- 187   1        //  ext0Disable();
- 188   1      
- 189   1      }
+ 214   2        }
+ 215   1        //  ext0Disable();
+ 216   1      
+ 217   1      }
 
 
 MODULE INFORMATION:   STATIC OVERLAYABLE
-   CODE SIZE        =    394    ----
+   CODE SIZE        =    902    ----
    CONSTANT SIZE    =   ----    ----
-   XDATA SIZE       =     39      11
+   XDATA SIZE       =     35     627
    PDATA SIZE       =   ----    ----
    DATA SIZE        =   ----    ----
    IDATA SIZE       =   ----    ----

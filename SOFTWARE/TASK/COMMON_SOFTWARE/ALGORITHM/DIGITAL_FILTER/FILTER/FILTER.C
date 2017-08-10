@@ -114,7 +114,7 @@ float limitingFilter(float value, float A)
 //************************************
 float movingAverageFilter(float value)
 {
-#define FILTER_N 10
+#define FILTER_N 200
 	static double filter_buf[FILTER_N + 1];
 	u16 i;
 	double filter_sum = 0;

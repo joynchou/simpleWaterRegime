@@ -1,4 +1,4 @@
-C51 COMPILER V8.05a   SERVO                                                                08/09/2017 19:30:54 PAGE 1   
+C51 COMPILER V8.05a   SERVO                                                                08/10/2017 09:20:55 PAGE 1   
 
 
 C51 COMPILER V8.05a, COMPILATION OF MODULE SERVO
@@ -62,7 +62,7 @@ line level    source
   50   1      //    GPIO_Inilize(GPIO_P2,&GPIO_InitStructure);  //≥ı ºªØ
   51   1      
   52   1          P37=1;
-C51 COMPILER V8.05a   SERVO                                                                08/09/2017 19:30:54 PAGE 2   
+C51 COMPILER V8.05a   SERVO                                                                08/10/2017 09:20:55 PAGE 2   
 
   53   1      //    P21=1;
   54   1          PWM_UNLOCK;
@@ -126,7 +126,7 @@ line level    source
  110   2          set_PWM_duty(MOTOR,str_duty);
  111   2        }
  112   1          str_motor[MOTOR].Current_angle = str_motor[MOTOR].Set_angle;
-C51 COMPILER V8.05a   SERVO                                                                08/09/2017 19:30:54 PAGE 3   
+C51 COMPILER V8.05a   SERVO                                                                08/10/2017 09:20:55 PAGE 3   
 
  113   1      }
  114          

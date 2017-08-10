@@ -1,4 +1,4 @@
-C51 COMPILER V8.05a   ABSTASK                                                              08/09/2017 19:42:17 PAGE 1   
+C51 COMPILER V8.05a   ABSTASK                                                              08/10/2017 09:20:23 PAGE 1   
 
 
 C51 COMPILER V8.05a, COMPILATION OF MODULE ABSTASK
@@ -18,7 +18,7 @@ line level    source
    8          {
    9   1        setup();
   10   1        //  blink(3);
-  11   1        os_create_task(5);
+  11   1        os_create_task(10);
   12   1        //os_create_task(BUTTON_SCAN);
   13   1        //os_create_task(BUTTON_SOUND);
   14   1        //  os_create_task(TEMPERATURE_UPDATE);
@@ -30,7 +30,7 @@ line level    source
   20          {
   21   1        for (;;)
   22   1        {
-  23   2          DataScope_Get_Channel_Data(getADS1115ConvsionData(0)*(-0.00070804f)+12.8156709f, 1);
+  23   2          DataScope_Get_Channel_Data(getADS1115ConvsionData(0)*(-0.00070804f) + 12.8156709f, 1);
   24   2      
   25   2          sendScopeData(1);
   26   2          os_wait(K_TMO, 30, 0);
@@ -48,113 +48,69 @@ line level    source
   38   1      }
   39          void Distance(void)  _task_ 10
   40          {
-  41   1      #define TIME 10
-  42   1      
-  43   1        float value;
-  44   1        float actValue;
-  45   1        float Data[TIME+1];
-  46   1        float time = 0;
-  47   1        float distance = 0;
-  48   1      
-  49   1        u8 i = 0;
-  50   1        for (;;)
-  51   1        {
-  52   2          for (i = 0; i < TIME; i++)
-  53   2          {
-  54   3            updateDistance(HC_SR04_1);
-C51 COMPILER V8.05a   ABSTASK                                                              08/09/2017 19:42:17 PAGE 2   
+  41   1        for (;;)
+  42   1        {
+  43   2        updateDistance(US_100_1);
+  44   2        DataScope_Get_Channel_Data( getdistance(US_100_1), 1);
+  45   2        sendScopeData(1);
+  46   2        os_wait(K_TMO, 100, 0);
+  47   2        }
+  48   1      }
+  49          //时间更新进程，频率5hz
+  50          void TimeUpdate(void) _task_ TIME_UPDATE
+  51          {
+  52   1        for (;;)
+  53   1        {
+  54   2      
+C51 COMPILER V8.05a   ABSTASK                                                              08/10/2017 09:20:23 PAGE 2   
 
-  55   3            os_wait(K_TMO, 4, 0);
-  56   3            actValue = (float)getTimerValue(HC_SR04_1);//原始数据
-  57   3            value = limitingFilter(actValue, 30000UL);//限幅滤波
-  58   3           value = shudderingFilter(value, 100);//消抖滤波
-  59   3            value = movingAverageFilter(value);//滑动平均滤波
-  60   3            Data[i] = value;
-  61   3          }
-  62   2          Data[TIME] = filter(Data, TIME, 65535, 0);//中位值平均滤波
-  63   2          time = Data[TIME] * 4.166667e-6;//公式，time的单位为ms，在24mzh下
-  64   2          distance = (time * (331.4f + 0.607*getDS18B20_Temperature(0))) / 20;
-  65   2          setDistance(HC_SR04_1, distance);
-  66   2          DataScope_Get_Channel_Data(distance, 1);
-  67   2          DataScope_Get_Channel_Data((actValue* 4.166667e-6*(331.4f + 0.607*getDS18B20_Temperature(0))) / 20, 2);
-  68   2      
-  69   2          sendScopeData(2);
-  70   2        //  os_wait(K_TMO, 100, 0);
-  71   2      
-  72   2          //for (i = 0; i < TIME; i++)
-  73   2          //{
-  74   2          //  updateDistance(US_016_1);
-  75   2          //  os_wait(K_TMO, 4, 0);
-  76   2          //  actValue = (float)getTimerValue(US_016_1);//原始数据
-  77   2          //  value = limitingFilter(actValue, 30000UL);//限幅滤波
-  78   2          //  value = shudderingFilter(value, 300);//消抖滤波
-  79   2          //  value = movingAverageFilter(value);//滑动平均滤波
-  80   2          //  Data[i] = value;
-  81   2          //}
-  82   2          //Data[TIME] = filter(Data, TIME, 65535, 0);//中位值平均滤波
-  83   2          //distance = Data[TIME]*0.015625f;
-  84   2          //setDistance(US_016_1, distance);
-  85   2          //DataScope_Get_Channel_Data(distance, 1);
-  86   2        //  sendScopeData(1);
-  87   2          //os_wait(K_TMO, 100, 0);
+  55   2          os_wait(K_IVL, 200, 0);
+  56   2        }
+  57   1      }
+  58          //温度计数值更新进程，频率10hz
+  59          void  TemperatureUpdata(void) _task_ TEMPERATURE_UPDATE
+  60          {
+  61   1        for (;;)
+  62   1        {
+  63   2      
+  64   2      
+  65   2          os_wait(K_IVL, 100, 0);
+  66   2      
+  67   2        }
+  68   1      }
+  69          //键盘按键声发出进程，频率50hz
+  70          void ButtonSound(void) _task_ BUTTON_SOUND
+  71          {
+  72   1        for (;;)
+  73   1        {
+  74   2          if (getButtonNum())
+  75   2          {
+  76   3            buzzWait();
+  77   3          }
+  78   2          os_wait(K_IVL, 20, 0);
+  79   2        }
+  80   1      
+  81   1      }
+  82          //按键扫描进程，50hz
+  83          void ButtonStateUpdate(void) _task_ BUTTON_SCAN
+  84          {
+  85   1        for (;;)
+  86   1        {
+  87   2          buttonScan();
   88   2      
-  89   2        }
-  90   1      }
-  91          //时间更新进程，频率5hz
-  92          void TimeUpdate(void) _task_ TIME_UPDATE
-  93          {
-  94   1        for (;;)
-  95   1        {
-  96   2      
-  97   2          os_wait(K_IVL, 200, 0);
-  98   2        }
-  99   1      }
- 100          //温度计数值更新进程，频率10hz
- 101          void  TemperatureUpdata(void) _task_ TEMPERATURE_UPDATE
- 102          {
- 103   1        for (;;)
- 104   1        {
- 105   2      
- 106   2      
- 107   2          os_wait(K_IVL, 100, 0);
- 108   2      
- 109   2        }
- 110   1      }
- 111          //键盘按键声发出进程，频率50hz
- 112          void ButtonSound(void) _task_ BUTTON_SOUND
- 113          {
- 114   1        for (;;)
- 115   1        {
- 116   2          if (getButtonNum())
-C51 COMPILER V8.05a   ABSTASK                                                              08/09/2017 19:42:17 PAGE 3   
-
- 117   2          {
- 118   3            buzzWait();
- 119   3          }
- 120   2          os_wait(K_IVL, 20, 0);
- 121   2        }
- 122   1      
- 123   1      }
- 124          //按键扫描进程，50hz
- 125          void ButtonStateUpdate(void) _task_ BUTTON_SCAN
- 126          {
- 127   1        for (;;)
- 128   1        {
- 129   2          buttonScan();
- 130   2      
- 131   2      
- 132   2          os_wait(K_IVL, 20, 0);
- 133   2      
- 134   2        }
- 135   1      
- 136   1      }
- 137          
+  89   2      
+  90   2          os_wait(K_IVL, 20, 0);
+  91   2      
+  92   2        }
+  93   1      
+  94   1      }
+  95          
 
 
 MODULE INFORMATION:   STATIC OVERLAYABLE
-   CODE SIZE        =    628    ----
+   CODE SIZE        =    187    ----
    CONSTANT SIZE    =   ----    ----
-   XDATA SIZE       =   ----      61
+   XDATA SIZE       =   ----    ----
    PDATA SIZE       =   ----    ----
    DATA SIZE        =   ----    ----
    IDATA SIZE       =   ----    ----

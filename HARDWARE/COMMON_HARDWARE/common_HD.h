@@ -15,6 +15,7 @@
 #include "hc_sr04/hc_sr04.h"
 #include "../SOFTWARE/TASK/COMMON_SOFTWARE/ALGORITHM/DIGITAL_FILTER/FILTER/FILTER.H"
 #include "DS18B20/DS18B20.h"
+#include <RTX51TNY.h>
 
 #endif
  

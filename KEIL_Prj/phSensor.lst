@@ -1,4 +1,4 @@
-C51 COMPILER V8.05a   PHSENSOR                                                             08/09/2017 19:58:04 PAGE 1   
+C51 COMPILER V8.05a   PHSENSOR                                                             08/10/2017 09:20:55 PAGE 1   
 
 
 C51 COMPILER V8.05a, COMPILATION OF MODULE PHSENSOR
@@ -62,7 +62,7 @@ line level    source
   52          // Qualifier: //此函数还可以返回上一次的PH值，不需要读取时间 ，是静态的数据，因为需要保存
   53          // Parameter: u8 PH_N
   54          // Parameter: u8 whichPHvalue
-C51 COMPILER V8.05a   PHSENSOR                                                             08/09/2017 19:58:04 PAGE 2   
+C51 COMPILER V8.05a   PHSENSOR                                                             08/10/2017 09:20:55 PAGE 2   
 
   55          //************************************
   56          #define FILTER_TIME  10

@@ -3,7 +3,7 @@
 #include "../BSP/BSP.H"
 #define HC_SR04_1  0
 #define US_016_1   1
-
+#define US_100_1   0
 #define Trig P33
 #define Echo P32
 #define RISING_EDGE 1

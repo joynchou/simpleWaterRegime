@@ -72,14 +72,6 @@ u8 getUltrasonicState(u8 num)
 	return ultrasonic[num].state;
 
 }
-void setTimerValue(u8 num, u16 value)
-{
-	ultrasonic[num].timerValue = value;
-}
-void setDistance(u8 num,float value)
-{
-	ultrasonic[num].distance = value;
-}
 //************************************
 // Method:    getTimerValue
 // FullName:  getTimerValue
@@ -103,29 +95,65 @@ u16 getTimerValue(u8 num)
 //************************************
 void updateDistance(u8 num)
 {
-	static double time;//相应时长，单位ms
+#define TIME 150
+
+	float value;
+	float actValue;
+	float Data[TIME + 1];
+	float time = 0;
+	float distance = 0;
+	u8 i = 0;
 	if (!ultrasonic[num].state)
 	{
-		return ;
+		return;
 	}
-	if (num==HC_SR04_1)
+	if (num == (HC_SR04_1 || US_100_1))
 	{
 		ext0Able();
 
 		Trig = HIGH;//发出脉冲信号
 		delay_us(5);//此函数不太准，3us实际大概
 		Trig = LOW;
+
+		for (i = 0; i < TIME; i++)
+		{
+			actValue = (float)ultrasonic[0].timerValue;//原始数据
+			value = limitingFilter(actValue, 30000UL);//限幅滤波
+			value = shudderingFilter(value, 500);//消抖滤波
+			value = movingAverageFilter(value);//滑动平均滤波
+			Data[i] = value;
+		}
+		Data[TIME] = filter(Data, TIME, 65535, 0);//中位值平均滤波
+		time = Data[TIME] * 4.166667e-6;//公式，time的单位为ms，在24mzh下
+		distance = (time * 340) / 2;
+		ultrasonic[num].distance = distance;
+
+
 	}
 	else if (num == US_016_1)
 	{
 		ultrasonic[US_016_1].timerValue = getADS1115ConvsionData(CHANNEL_1);
-		delay_us(5);//此函数不太准，3us实际大概
+		for (i = 0; i < TIME; i++)
+		{
+			actValue = ultrasonic[US_016_1].timerValue;//原始数据
+			value = limitingFilter(actValue, 30000UL);//限幅滤波
+			value = shudderingFilter(value, 300);//消抖滤波
+			value = movingAverageFilter(value);//滑动平均滤波
+			Data[i] = value;
+		}
+		Data[TIME] = filter(Data, TIME, 65535, 0);//中位值平均滤波
+		distance = Data[TIME] * 0.015625f;   //16位adc
+		ultrasonic[num].distance = distance;
+
 	}
 	else
 	{
 
 	}
- }
+
+}
+
+
 //************************************
 // Method:    getdistance
 // FullName:  getdistance
@@ -137,7 +165,7 @@ void updateDistance(u8 num)
 double getdistance(u8 num)//获取传感器距离
 {
 
- 
+
 	return ultrasonic[num].distance;//如果没有更新数据则返回上一次更新的值，否则返回最近值
 }
 /********************* INT0中断函数 *************************/

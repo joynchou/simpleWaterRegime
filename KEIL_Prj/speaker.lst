@@ -1,4 +1,4 @@
-C51 COMPILER V8.05a   SPEAKER                                                              08/09/2017 19:30:55 PAGE 1   
+C51 COMPILER V8.05a   SPEAKER                                                              08/10/2017 09:20:55 PAGE 1   
 
 
 C51 COMPILER V8.05a, COMPILATION OF MODULE SPEAKER
@@ -62,7 +62,7 @@ line level    source
   52          //************************************
   53          // Method:    buzzSucceed
   54          // FullName:  buzzSucceed
-C51 COMPILER V8.05a   SPEAKER                                                              08/09/2017 19:30:55 PAGE 2   
+C51 COMPILER V8.05a   SPEAKER                                                              08/10/2017 09:20:55 PAGE 2   
 
   55          // Access:    public 
   56          // Returns:   void
@@ -126,7 +126,7 @@ line level    source
 
 MODULE INFORMATION:   STATIC OVERLAYABLE
    CODE SIZE        =    337    ----
-C51 COMPILER V8.05a   SPEAKER                                                              08/09/2017 19:30:55 PAGE 3   
+C51 COMPILER V8.05a   SPEAKER                                                              08/10/2017 09:20:55 PAGE 3   
 
    CONSTANT SIZE    =   ----    ----
    XDATA SIZE       =   ----      13
