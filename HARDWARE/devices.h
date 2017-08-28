@@ -22,7 +22,10 @@
 #include "MOTOR/STEP_MOTOR/STEP_MOTOR.H"
 #include "SENSOR/ANGLE/ANGLE.h"
 #include "WIRELESS/NRF24L01/NRF24L01.H"
+#include "SENSOR/phsensor/PHSENSOR.H"
 #include "SPEAKER/speaker.h"
-#include "SENSOR/phSensor/phSensor.h"
+#include "VOLTMETER/VOLTMETER.H"
+#include "SNOB/SNOB.H"
+
 #endif
  
